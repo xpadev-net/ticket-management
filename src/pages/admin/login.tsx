@@ -32,7 +32,6 @@ export default function AdminLogin() {
       }
 
       localStorage.setItem('auth_token', data.token);
-      localStorage.setItem('user_data', JSON.stringify(data.user));
       
       router.push('/admin/dashboard');
     } catch (error) {

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { Organization, User, MemberRole } from '@/lib/types';
+import { MemberRole } from '@/lib/types';
 import useSWR, { mutate } from 'swr';
 import { swrFetcher, postWithAuth, putWithAuth } from '@/lib/fetcher';
 import { OrganizationResponseItem } from '@/app/api/organizations/route';

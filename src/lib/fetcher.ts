@@ -41,7 +41,7 @@ export const swrFetcher = <T>(url: string): Promise<T> => fetchWithAuth<T>(url);
 /**
  * PUT request with authentication
  */
-export const putWithAuth = async <T, D = any>(url: string, data: D): Promise<T> => {
+export const putWithAuth = async <T, D = unknown>(url: string, data: D): Promise<T> => {
   return fetchWithAuth<T>(url, {
     method: 'PUT',
     body: JSON.stringify(data)
@@ -51,7 +51,7 @@ export const putWithAuth = async <T, D = any>(url: string, data: D): Promise<T> 
 /**
  * POST request with authentication
  */
-export const postWithAuth = async <T, D = any>(url: string, data: D): Promise<T> => {
+export const postWithAuth = async <T, D = unknown>(url: string, data: D): Promise<T> => {
   return fetchWithAuth<T>(url, {
     method: 'POST',
     body: JSON.stringify(data)

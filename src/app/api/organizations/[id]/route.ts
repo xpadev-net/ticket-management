@@ -7,10 +7,10 @@ import { OrganizationResponseItem } from '../route';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse<ApiResponse<OrganizationResponseItem>>> {
   try {
-    const validatedParams = idSchema.safeParse({ id: params.id });
+    const validatedParams = idSchema.safeParse(await params);
     if (!validatedParams.success) {
       return NextResponse.json(
         createApiError('無効な組織IDです'),
@@ -126,10 +126,10 @@ export async function GET(
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
-    const validatedParams = idSchema.safeParse({ id: params.id });
+    const validatedParams = idSchema.safeParse(await params);
     if (!validatedParams.success) {
       return NextResponse.json(
         createApiError('無効な組織IDです'),
@@ -241,10 +241,10 @@ export async function PUT(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
-    const validatedParams = idSchema.safeParse({ id: params.id });
+    const validatedParams = idSchema.safeParse(await params);
     if (!validatedParams.success) {
       return NextResponse.json(
         createApiError('無効な組織IDです'),

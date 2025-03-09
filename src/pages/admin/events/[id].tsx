@@ -182,7 +182,7 @@ export default function EventDetails() {
           const qrDataUrl = await generateQRCode(qrCode);
           setQrCodes(prev => ({ ...prev, [ticketId]: qrDataUrl }));
         } catch (error) {
-          toast.error('QRコードの生成に失敗しました');
+          toast.error(`QRコードの生成に失敗しました: ${error instanceof Error ? error.message : 'エラーが発生しました'}`);
           return;
         }
       }

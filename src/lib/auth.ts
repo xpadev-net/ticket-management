@@ -6,6 +6,8 @@ import { NextRequest } from 'next/server';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+export type JWTPayload = Pick<User,"id"|"email"|"name">;
+
 export async function hashPassword(password: string): Promise<string> {
   const salt = await bcrypt.genSalt(10);
   return bcrypt.hash(password, salt);
@@ -15,7 +17,7 @@ export async function verifyPassword(password: string, hashedPassword: string): 
   return bcrypt.compare(password, hashedPassword);
 }
 
-export function generateToken(user: Pick<User,"id"|"email"|"name">): string {
+export function generateToken(user: JWTPayload): string {
   const payload = {
     id: user.id,
     email: user.email,
@@ -25,10 +27,11 @@ export function generateToken(user: Pick<User,"id"|"email"|"name">): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
 }
 
-export function verifyToken(token: string): any {
+export function verifyToken(token: string): JWTPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET);
+    return jwt.verify(token, JWT_SECRET) as JWTPayload;
   } catch (error) {
+    console.error('Error verifying token :', error);
     return null;
   }
 }

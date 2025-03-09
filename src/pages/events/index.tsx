@@ -211,6 +211,37 @@ export default function EventList() {
           ))}
         </div>
       )}
+      <div>
+        <Button
+          onClick={() => {
+            router.push({
+              pathname: router.pathname,
+              query: {
+                ...(searchQuery && { query: searchQuery }),
+                ...(selectedTags.length > 0 && { tags: selectedTags }),
+                page: currentPage - 1
+              }
+            });
+          }
+        }>
+          前のページ
+        </Button>
+        <span className="mx-2">{currentPage} / {data.pagination.totalPages}</span>
+        <Button
+          onClick={() => {
+            router.push({
+              pathname: router.pathname,
+              query: {
+                ...(searchQuery && { query: searchQuery }),
+                ...(selectedTags.length > 0 && { tags: selectedTags }),
+                page: currentPage + 1
+              }
+            });
+          }
+        }>
+          次のページ
+        </Button>
+      </div>
     </div>
   );
 }

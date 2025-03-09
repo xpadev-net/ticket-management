@@ -30,6 +30,7 @@
     "react-dom": "^19.0.0",
     "react-email": "^3.0.7",
     "react-hook-form": "^7.54.2",
+    "react-hooks": "^1.0.1",
     "react-zxing": "^2.1.0",
     "resend": "^4.1.2",
     "sonner": "^2.0.1",

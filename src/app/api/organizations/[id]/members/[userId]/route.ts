@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getUserFromToken, getUserRoleInOrganization, canManageRole, authenticateUser } from '@/lib/auth';
+import { getUserFromToken, getUserRoleInOrganization, authenticateUser } from '@/lib/auth';
 import { createApiResponse, createApiError, ApiResponse, idSchema, memberRoleUpdateSchema } from '@/lib/schema';
 import { z } from 'zod';
 import { MemberRole } from '@prisma/client';
@@ -11,13 +11,8 @@ const memberPathParamsSchema = z.object({
   userId: z.string().uuid({ message: "有効なユーザーIDが必要です" })
 });
 
-const updateRoleSchema = z.object({
-  role: z.union([z.nativeEnum(MemberRole), z.literal('OWNER')])
-});
-
 // Type inference from Zod schema
 type MemberPathParams = z.infer<typeof memberPathParamsSchema>;
-type UpdateRoleRequest = z.infer<typeof updateRoleSchema>;
 
 // Response types
 type MemberInfo = {
@@ -41,19 +36,6 @@ type OwnerInfo = {
   role: 'OWNER';
 };
 
-type OwnershipTransferResult = {
-  message: string;
-  data: {
-    organization: any;
-    membership: any;
-  };
-};
-
-type MemberDeleteResponse = {
-  success: boolean;
-  message: string;
-};
-
 // Helper function to extract and validate path parameters
 async function getValidatedParams(req: NextRequest, params: { id: string, userId: string }): Promise<MemberPathParams | null> {
   try {
@@ -61,7 +43,8 @@ async function getValidatedParams(req: NextRequest, params: { id: string, userId
       id: params.id,
       userId: params.userId 
     });
-  } catch (error) {
+  } catch (e) {
+    console.error('Invalid path parameters:', e);
     return null;
   }
 }
@@ -69,10 +52,10 @@ async function getValidatedParams(req: NextRequest, params: { id: string, userId
 // GET handler
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string, userId: string } }
+  { params }: { params: Promise<{ id: string, userId: string }> }
 ): Promise<NextResponse<ApiResponse<MemberInfo | OwnerInfo>>> {
   try {
-    const validatedParams = await getValidatedParams(req, params);
+    const validatedParams = await getValidatedParams(req, await params);
     if (!validatedParams) {
       return NextResponse.json(
         createApiError('無効なIDパラメーターです'),
@@ -171,11 +154,11 @@ export async function GET(
 // PUT handler
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string; userId: string } }
+  { params }: { params: Promise<{ id: string; userId: string }> }
 ): Promise<NextResponse> {
   try {
-    const validatedOrgId = idSchema.safeParse({ id: params.id });
-    const validatedUserId = idSchema.safeParse({ id: params.userId });
+    const validatedOrgId = idSchema.safeParse({ id: (await params).id });
+    const validatedUserId = idSchema.safeParse({ id: (await params).userId });
     
     if (!validatedOrgId.success || !validatedUserId.success) {
       return NextResponse.json(
@@ -318,9 +301,10 @@ export async function PUT(
 // DELETE handler
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string; userId: string } }
+  { params: _params }: { params: Promise<{ id: string; userId: string }> }
 ): Promise<NextResponse> {
   try {
+    const params = await _params;
     const validatedOrgId = idSchema.safeParse({ id: params.id });
     const validatedUserId = idSchema.safeParse({ id: params.userId });
     

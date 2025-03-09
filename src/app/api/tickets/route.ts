@@ -2,9 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { createApiResponse, createApiError, ticketGenerationSchema } from '@/lib/schema';
 import { z } from 'zod';
-import { generateQRCode } from '@/lib/utils';
 import { generateTicketEmailHtml, generateTicketEmailText } from '@/lib/email';
-import { randomUUID } from 'crypto';
 
 export async function POST(
   req: NextRequest

@@ -8,10 +8,10 @@ import { MemberRole } from '@prisma/client';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
-    const validatedParams = idSchema.safeParse({ id: params.id });
+    const validatedParams = idSchema.safeParse(await params);
     if (!validatedParams.success) {
       return NextResponse.json(
         createApiError('無効な組織IDです'),
@@ -92,10 +92,10 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ): Promise<NextResponse> {
   try {
-    const validatedParams = idSchema.safeParse({ id: params.id });
+    const validatedParams = idSchema.safeParse(await params);
     if (!validatedParams.success) {
       return NextResponse.json(
         createApiError('無効な組織IDです'),
@@ -161,7 +161,7 @@ export async function POST(
     const { email, role: newMemberRole } = validationResult.data;
 
     // 既存のユーザーを検索
-    let invitedUser = await prisma.user.findUnique({
+    const invitedUser = await prisma.user.findUnique({
       where: { email }
     });
 

@@ -28,10 +28,10 @@ export type TicketResponse = {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { qrCode: string } }
+  { params }: { params: Promise<{ qrCode: string }> }
 ): Promise<NextResponse<ApiResponse<TicketResponse>>> {
   try {
-    const validationResult = qrCodeSchema.safeParse({ qrCode: params.qrCode });
+    const validationResult = qrCodeSchema.safeParse(await params);
     if (!validationResult.success) {
       return NextResponse.json(
         createApiError('チケットコードが無効です'),
@@ -40,17 +40,6 @@ export async function GET(
     }
 
     const { qrCode } = validationResult.data;
-
-    // Check if this is an authenticated admin request or public access
-    const authHeader = req.headers.get('authorization');
-    let isAdminRequest = false;
-    let user = null;
-
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      const token = authHeader.substring(7);
-      user = await getUserFromToken(token);
-      isAdminRequest = !!user;
-    }
 
     try {
       const ticket = await prisma.ticket.findUnique({
@@ -137,11 +126,11 @@ export type TicketStatusUpdateResponse = {
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { qrCode: string } }
+  { params }: { params: Promise<{ qrCode: string }> }
 ): Promise<NextResponse<ApiResponse<TicketStatusUpdateResponse>>> {
   try {
     // QRコードの検証
-    const validatedParams = qrCodeSchema.safeParse({ qrCode: params.qrCode });
+    const validatedParams = qrCodeSchema.safeParse(await params);
     if (!validatedParams.success) {
       return NextResponse.json(
         createApiError('チケットコードが無効です'),

@@ -36,18 +36,18 @@ export default function TicketView() {
 
   // チケットデータが取得できたらQRコードを生成
   useEffect(() => {
-    if (ticket?.ticket.qrCode) {
+    if (ticket?.qrCode) {
       generateQrCode();
     }
   }, [ticket]);
 
   const generateQrCode = async () => {
-    if (!ticket?.ticket) return;
+    if (!ticket) return;
     try {
-      const qrDataUrl = await generateQRCode(ticket.ticket.qrCode);
+      const qrDataUrl = await generateQRCode(ticket.qrCode);
       setQrCodeImage(qrDataUrl);
     } catch (error) {
-      toast.error('QRコードの生成に失敗しました');
+      toast.error(`QRコードの生成に失敗しました: ${error instanceof Error ? error.message : "エラーが発生しました"}`);
     }
   };
 
@@ -67,44 +67,42 @@ export default function TicketView() {
     );
   }
 
-  if (!ticket?.ticket) {
+  if (!ticket) {
     return <div className="container mx-auto p-4">チケットが見つかりません</div>;
   }
-
-  const ticketData = ticket.ticket;
 
   return (
     <div className="container mx-auto p-4">
       <Card className="max-w-2xl mx-auto p-6" ref={printRef}>
         <div className="text-center mb-6">
-          <h1 className="text-2xl font-bold">{ticketData.session.event.name}</h1>
-          <p className="text-gray-600 mt-2">{ticketData.session.name}</p>
+          <h1 className="text-2xl font-bold">{ticket.session.event.name}</h1>
+          <p className="text-gray-600 mt-2">{ticket.session.name}</p>
         </div>
         <div className="space-y-4 mb-6">
           <div>
             <p className="font-semibold">開催日時:</p>
-            <p>{new Date(ticketData.session.date).toLocaleString('ja-JP')}</p>
+            <p>{new Date(ticket.session.date).toLocaleString('ja-JP')}</p>
           </div>
           <div>
             <p className="font-semibold">開催場所:</p>
-            <p>{ticketData.session.location}</p>
+            <p>{ticket.session.location}</p>
           </div>
           <div>
             <p className="font-semibold">参加者名:</p>
-            <p>{ticketData.name}</p>
+            <p>{ticket.name}</p>
           </div>
           <div>
             <p className="font-semibold">ステータス:</p>
-            <p className={ticketData.used ? "text-red-600" : "text-green-600"}>
-              {ticketData.used ? '使用済み' : '未使用'}
-              {ticketData.usedAt && ` (${new Date(ticketData.usedAt).toLocaleString('ja-JP')})`}
+            <p className={ticket.used ? "text-red-600" : "text-green-600"}>
+              {ticket.used ? '使用済み' : '未使用'}
+              {ticket.usedAt && ` (${new Date(ticket.usedAt).toLocaleString('ja-JP')})`}
             </p>
           </div>
         </div>
         {qrCodeImage && (
           <div className="flex flex-col items-center space-y-4">
             <img src={qrCodeImage} alt="Ticket QR Code" className="w-64 h-64" />
-            <p className="text-sm text-gray-500">チケットコード: {ticketData.qrCode}</p>
+            <p className="text-sm text-gray-500">チケットコード: {ticket.qrCode}</p>
           </div>
         )}
         <div className="mt-6 flex justify-center print:hidden">

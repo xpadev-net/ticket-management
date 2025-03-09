@@ -9,41 +9,6 @@ import { swrFetcher, fetchWithAuth, putWithAuth } from '@/lib/fetcher';
 import { SessionStatsResponse, SessionStatsResponseItem } from '@/app/api/sessions/stats/route';
 import { TicketStatusUpdateResponse } from '@/app/api/tickets/[qrCode]/route';
 
-interface VerifiedTicket {
-  id: string;
-  name: string;
-  email: string;
-  used: boolean;
-  usedAt: string | null;
-  session: {
-    id: string;
-    name: string;
-    date: string;
-    location: string;
-    event: {
-      name: string;
-    };
-  };
-}
-
-interface SessionWithStats {
-  id: string;
-  name: string;
-  date: string;
-  location: string;
-  capacity: number;
-  event: {
-    id: string;
-    name: string;
-  };
-  stats: {
-    total: number;
-    checkedIn: number;
-    remaining: number;
-    capacityRemaining: number;
-  };
-}
-
 export default function TicketVerification() {
   const [isScanning, setIsScanning] = useState(false);
   const [lastVerifiedTicket, setLastVerifiedTicket] = useState<TicketStatusUpdateResponse | null>(null);

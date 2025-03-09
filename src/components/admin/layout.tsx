@@ -1,7 +1,10 @@
-import { ReactNode, useState, useEffect } from 'react';
+import { ReactNode } from 'react';
 import { useRouter } from 'next/router';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import useSWR from 'swr';
+import { fetchWithAuth } from '@/lib/fetcher';
+import { User } from '@/lib/types';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -10,40 +13,14 @@ interface AdminLayoutProps {
 
 export default function AdminLayout({ children, title }: AdminLayoutProps) {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // ローカルストレージからトークンを取得
-    const token = localStorage.getItem('auth_token');
-    if (!token) {
-      router.push('/admin/login');
-      return;
-    }
-
-    // ユーザー情報を取得
-    const userData = localStorage.getItem('user_data');
-    if (userData) {
-      try {
-        setUser(JSON.parse(userData));
-      } catch (error) {
-        console.error('Failed to parse user data:', error);
-        localStorage.removeItem('user_data');
-        router.push('/admin/login');
-        return;
-      }
-    }
-    
-    setLoading(false);
-  }, [router]);
+  const {data: user, isLoading} = useSWR<User>('/api/users/me', fetchWithAuth);
 
   const handleLogout = () => {
     localStorage.removeItem('auth_token');
-    localStorage.removeItem('user_data');
     router.push('/admin/login');
   };
 
-  if (loading) {
+  if (isLoading) {
     return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
   }
 

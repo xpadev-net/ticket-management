@@ -2,7 +2,6 @@ import AdminLayout from '@/components/admin/layout';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { Organization } from '@/lib/types';
 import useSWR from 'swr';
 import { swrFetcher } from '@/lib/fetcher';
 import { OrganizationResponse } from '@/app/api/organizations/route';

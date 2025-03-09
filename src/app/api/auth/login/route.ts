@@ -5,21 +5,23 @@ import { createApiResponse, createApiError, ApiResponse } from '@/lib/schema';
 import { z } from 'zod';
 import { MemberRole } from '@prisma/client';
 
-type LoginResponseData = {
-  token: string;
-  user: {
+export type LoginedUser = {
+  id: string;
+  name: string;
+  email: string;
+  memberships: {
     id: string;
-    name: string;
-    email: string;
-    memberships: {
+    role: MemberRole;
+    organization: {
       id: string;
-      role: MemberRole;
-      organization: {
-        id: string;
-        name: string;
-      };
-    }[];
-  };
+      name: string;
+    };
+  }[];
+}
+
+export type LoginResponseData = {
+  token: string;
+  user: LoginedUser;
 };
 
 // Login schema
@@ -94,13 +96,22 @@ export async function POST(
       name: user.name,
     });
     
-    // パスワードハッシュを除いたユーザー情報を返す
-    const { password: _, createdAt: __, updatedAt: ___, ...userWithoutPassword } = user;
-    
     return NextResponse.json(
       createApiResponse({
         token,
-        user: userWithoutPassword
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          memberships: user.memberships.map(membership => ({
+            id: membership.id,
+            role: membership.role,
+            organization: {
+              id: membership.organization.id,
+              name: membership.organization.name,
+            }
+          }))
+        }
       })
     );
   } catch (error) {

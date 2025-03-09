@@ -5,19 +5,38 @@ import { createApiResponse, createApiError, eventSchema, searchQuerySchema, ApiR
 import { z } from 'zod';
 import { Prisma } from '@prisma/client';
 
-type EventsApiResponse = ApiResponse<{
-  events: any[];
+type EventsApiResponse = {
+  events: {
+    id: string;
+    name: string;
+    description: string;
+    organization: {
+      id: string;
+      name: string;
+    };
+    sessions: {
+      id: string;
+      name: string;
+      date: string;
+      location: string;
+      capacity: number;
+    }[];
+    tags: {
+      id: string;
+      name: string;
+    }[];
+  }[];
   pagination: {
     page: number;
     limit: number;
     total: number;
     totalPages: number;
   };
-}>;
+};
 
 export async function GET(
   req: NextRequest
-): Promise<NextResponse> {
+): Promise<NextResponse<ApiResponse<EventsApiResponse>>> {
   try {
     const searchParams = req.nextUrl.searchParams;
     const page_str = searchParams.get('page');
@@ -95,7 +114,23 @@ export async function GET(
 
     return NextResponse.json(
       createApiResponse({
-        events,
+        events: events.map(event => ({
+          id: event.id,
+          name: event.name,
+          description: event.description,
+          organization: {
+            id: event.organization.id,
+            name: event.organization.name
+          },
+          sessions: event.sessions.map(session => ({
+            id: session.id,
+            name: session.name,
+            date: session.date.toISOString(),
+            location: session.location,
+            capacity: session.capacity
+          })),
+          tags: event.tags
+        })),
         pagination: {
           page,
           limit,
