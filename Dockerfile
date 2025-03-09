@@ -19,7 +19,7 @@ WORKDIR /app
 
 COPY --from=builder /app ./
 
-RUN pnpm prisma generate
+RUN npx prisma generate
 
 # Copy artifacts
 CMD ["./start.sh"]
