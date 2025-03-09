@@ -17,6 +17,7 @@ FROM node:$NODE_VERSION AS runner
 LABEL org.opencontainers.image.source=https://github.com/xpadev-net/video_host_frontend
 WORKDIR /app
 
+RUN apt-get update -y && apt-get install -y openssl
 COPY --from=builder /app ./
 
 RUN npx prisma generate
