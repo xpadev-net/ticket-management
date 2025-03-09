@@ -206,7 +206,7 @@ export default function OrganizationDetails() {
             )}
           </div>
           {inviting && (
-            <form onSubmit={handleInvite} className="mb-6 p-4 bg-gray-50 rounded-lg">
+            <form onSubmit={handleInvite} className="mb-6 p-4 rounded-lg">
               <div className="grid gap-4 mb-4">
                 <div>
                   <Label htmlFor="inviteEmail">メールアドレス</Label>
@@ -252,7 +252,7 @@ export default function OrganizationDetails() {
             {organization.members.map((member) => (
               <div
                 key={member.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                className="flex items-center justify-between p-4 rounded-lg"
               >
                 <div>
                   <p className="font-medium">{member.user.name}</p>

@@ -72,7 +72,7 @@ export default function TicketView() {
   }
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="min-h-screen flex items-center justify-center">
       <Card className="max-w-2xl mx-auto p-6" ref={printRef}>
         <div className="text-center mb-6">
           <h1 className="text-2xl font-bold">{ticket.session.event.name}</h1>

@@ -8,7 +8,7 @@ export default function TicketComplete() {
   const { eventName, sessionName, quantity } = router.query;
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="min-h-screen flex items-center justify-center">
       <Card className="max-w-lg mx-auto p-6 space-y-4">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-4">チケット申込完了</h1>

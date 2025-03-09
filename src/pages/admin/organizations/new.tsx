@@ -53,58 +53,58 @@ export default function NewOrganization() {
 
   return (
     <AdminLayout title="組織の新規作成">
-      <Card className="max-w-2xl mx-auto p-6">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <Label htmlFor="name">組織名</Label>
-            <Input
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              required
-              placeholder="組織名を入力"
-            />
-          </div>
+    <Card className="max-w-2xl mx-auto p-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        <div>
+          <Label htmlFor="name">組織名</Label>
+          <Input
+            id="name"
+            name="name"
+            value={formData.name}
+            onChange={handleChange}
+            required
+            placeholder="組織名を入力"
+          />
+        </div>
 
-          <div>
-            <Label htmlFor="description">説明</Label>
-            <Input
-              id="description"
-              name="description"
-              value={formData.description}
-              onChange={handleChange}
-              placeholder="組織の説明を入力（任意）"
-            />
-          </div>
+        <div>
+          <Label htmlFor="description">説明</Label>
+          <Input
+            id="description"
+            name="description"
+            value={formData.description}
+            onChange={handleChange}
+            placeholder="組織の説明を入力（任意）"
+          />
+        </div>
 
-          <div>
-            <Label htmlFor="logoUrl">ロゴURL</Label>
-            <Input
-              id="logoUrl"
-              name="logoUrl"
-              type="url"
-              value={formData.logoUrl}
-              onChange={handleChange}
-              placeholder="ロゴのURLを入力（任意）"
-            />
-          </div>
+        <div>
+          <Label htmlFor="logoUrl">ロゴURL</Label>
+          <Input
+            id="logoUrl"
+            name="logoUrl"
+            type="url"
+            value={formData.logoUrl}
+            onChange={handleChange}
+            placeholder="ロゴのURLを入力（任意）"
+          />
+        </div>
 
-          <div className="flex justify-end space-x-4">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => router.back()}
-              disabled={loading}
-            >
-              キャンセル
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? '作成中...' : '作成'}
-            </Button>
-          </div>
-        </form>
-      </Card>
+        <div className="flex justify-end space-x-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => router.back()}
+            disabled={loading}
+          >
+            キャンセル
+          </Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? '作成中...' : '作成'}
+          </Button>
+        </div>
+      </form>
+    </Card>
     </AdminLayout>
   );
 }

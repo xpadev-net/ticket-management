@@ -28,16 +28,16 @@ export default function EventList() {
               <div>
                 <h3 className="text-lg font-semibold mb-2">{event.name}</h3>
                 {event.sessions.length > 0 && (
-                  <p className="text-sm text-gray-500 mb-2">
+                  <p className="text-sm mb-2">
                     {new Date(event.sessions[0].date).toLocaleDateString()} @ {event.sessions[0].location}
                   </p>
                 )}
-                <p className="text-sm text-gray-600 mb-4 line-clamp-2">
+                <p className="text-sm mb-4 line-clamp-2">
                   {event.description}
                 </p>
               </div>
               <div className="flex items-center justify-between mt-auto pt-4 border-t">
-                <span className="text-sm text-gray-500">
+                <span className="text-sm">
                   セッション数: {event.sessions.length}
                 </span>
                 <Link
@@ -51,8 +51,8 @@ export default function EventList() {
           </Card>
         ))}
         {org.events.length === 0 && (
-          <div className="col-span-full text-center py-8 bg-gray-50 rounded-lg">
-            <p className="text-gray-500">イベントがありません</p>
+          <div className="col-span-full text-center py-8 rounded-lg">
+            <p className="">イベントがありません</p>
           </div>
         )}
       </div>

@@ -34,7 +34,7 @@ export default function Dashboard() {
             {organization.events.slice(0, 3).map((event) => (
               <div
                 key={event.id}
-                className="flex justify-between items-center p-2 bg-gray-50 rounded"
+                className="flex justify-between items-center p-2 rounded"
               >
                 <div>
                   <p className="font-medium">{event.name}</p>

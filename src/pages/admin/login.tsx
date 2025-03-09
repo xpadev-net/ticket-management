@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Toaster, toast } from 'sonner';
+import { ApiResponse } from '@/lib/schema';
+import { LoginResponseData } from '@/app/api/auth/login/route';
 
 export default function AdminLogin() {
   const router = useRouter();
@@ -25,13 +27,16 @@ export default function AdminLogin() {
         body: JSON.stringify({ email, password }),
       });
 
-      const data = await response.json();
+      const data = await response.json() as ApiResponse<LoginResponseData>;
 
-      if (!response.ok) {
-        throw new Error(data.error || 'ログインに失敗しました');
+      if (!response.ok ) {
+        throw new Error('ログインに失敗しました');
+      }
+      if (!data.success){
+        throw new Error(data.error);
       }
 
-      localStorage.setItem('auth_token', data.token);
+      localStorage.setItem('auth_token', data.data.token);
       
       router.push('/admin/dashboard');
     } catch (error) {
@@ -42,7 +47,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center">
       <Toaster />
       <Card className="w-full max-w-md p-6">
         <div className="text-center mb-6">

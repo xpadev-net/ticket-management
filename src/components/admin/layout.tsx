@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import useSWR from 'swr';
 import { fetchWithAuth } from '@/lib/fetcher';
 import { User } from '@/lib/types';
+import { ModeToggle } from '../theme-selecter';
 
 interface AdminLayoutProps {
   children: ReactNode;
@@ -25,55 +26,28 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm">
+    <div className="min-h-screen">
+      <nav className="shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between h-16">
             <div className="flex">
               <div className="flex-shrink-0 flex items-center">
-                <Link href="/admin/dashboard" className="text-xl font-bold text-gray-800">
+                <Link href="/admin/dashboard" className="text-xl font-bold">
                   チケット管理システム
                 </Link>
               </div>
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                <Link href="/admin/dashboard" 
-                  className={`${
-                    router.pathname === '/admin/dashboard'
-                      ? 'border-indigo-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}>
-                  ダッシュボード
-                </Link>
-                <Link href="/admin/organizations" 
-                  className={`${
-                    router.pathname.startsWith('/admin/organizations')
-                      ? 'border-indigo-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}>
-                  組織管理
-                </Link>
-                <Link href="/admin/events" 
-                  className={`${
-                    router.pathname.startsWith('/admin/events')
-                      ? 'border-indigo-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}>
-                  イベント管理
-                </Link>
-                <Link href="/admin/tickets" 
-                  className={`${
-                    router.pathname.startsWith('/admin/tickets')
-                      ? 'border-indigo-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}>
-                  チケット受付
-                </Link>
+                <LinkItem href="/admin/dashboard">ダッシュボード</LinkItem>
+                <LinkItem href="/admin/organizations">組織管理</LinkItem>
+                <LinkItem href="/admin/events">イベント管理</LinkItem>
+                <LinkItem href="/admin/tickets">チケット受付</LinkItem>
               </div>
             </div>
-            <div className="hidden sm:ml-6 sm:flex sm:items-center">
+            <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
               <div className="mr-4">
-                <span className="text-sm text-gray-500">{user?.name}</span>
+                <span className="text-sm">{user?.name}</span>
               </div>
+              <ModeToggle />
               <Button variant="outline" onClick={handleLogout}>ログアウト</Button>
             </div>
           </div>
@@ -82,7 +56,7 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
 
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <h1 className="text-2xl font-semibold text-gray-900">{title}</h1>
+          <h1 className="text-2xl font-semibold">{title}</h1>
         </div>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
           {children}
@@ -90,4 +64,18 @@ export default function AdminLayout({ children, title }: AdminLayoutProps) {
       </div>
     </div>
   );
+}
+
+const LinkItem = ({ href, children }: {href: string, children?: ReactNode}) => {
+  const router = useRouter();
+  return (
+    <Link href={href}
+      className={`${
+        router.pathname.startsWith(href)
+        ? 'border-indigo-500'
+        : 'border-transparent hover:border-gray-300'
+      } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}>
+      {children}
+    </Link>
+  )
 }

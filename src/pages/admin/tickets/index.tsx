@@ -219,15 +219,15 @@ export default function TicketVerification() {
               </div>
 
               {/* Progress bar */}
-              <div className="w-full h-4 bg-gray-200 rounded-full overflow-hidden">
+              <div className="w-full h-4 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-green-500" 
+                  className="h-full" 
                   style={{ 
                     width: `${calculateProgress(selectedSession.stats.checkedIn, selectedSession.stats.total)}%` 
                   }}
                 />
               </div>
-              <div className="text-xs text-center text-gray-500">
+              <div className="text-xs text-center">
                 {selectedSession.stats.checkedIn} / {selectedSession.stats.total} 
                 ({Math.round(calculateProgress(selectedSession.stats.checkedIn, selectedSession.stats.total))}%)
               </div>

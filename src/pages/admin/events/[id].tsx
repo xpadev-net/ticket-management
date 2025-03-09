@@ -362,7 +362,7 @@ export default function EventDetails() {
                   {tags.map(tag => (
                     <span
                       key={tag}
-                      className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-sm flex items-center gap-1"
+                      className="px-2 py-1 rounded-full text-sm flex items-center gap-1"
                     >
                       {tag}
                       <button
@@ -459,7 +459,7 @@ export default function EventDetails() {
                     {event.tags.map(tag => (
                       <span
                         key={tag.id}
-                        className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-sm"
+                        className="px-2 py-1 rounded-full text-sm"
                       >
                         {tag.name}
                       </span>

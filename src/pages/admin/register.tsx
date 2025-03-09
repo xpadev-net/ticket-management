@@ -61,7 +61,7 @@ export default function Register() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center">
       <Toaster />
       <Card className="w-full max-w-md p-6">
         <div className="text-center mb-6">
