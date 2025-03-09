@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                  String               @id @default(uuid())
+  email               String               @unique
+  name                String
+  password            String
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  ownedOrganizations  Organization[]       @relation("OrganizationOwner")
+  memberships         OrganizationMember[]
+  
+  @@map("users")
+}
+
+model Organization {
+  id          String               @id @default(uuid())
+  name        String
+  description String?              @db.Text
+  logoUrl     String?
+  ownerId     String
+  owner       User                 @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  members     OrganizationMember[]
+  events      Event[]
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String       @id @default(uuid())
+  userId         String
+  organizationId String
+  role           MemberRole   @default(MEMBER)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([userId, organizationId])
+  @@map("organization_members")
+}
+
+enum MemberRole {
+  MANAGER
+  MEMBER
+}
+
+model Event {
+  id             String        @id @default(uuid())
+  name           String
+  description    String        @db.Text
+  organizationId String
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  sessions       EventSession[]
+  tags           EventTag[]    // 追加
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@map("events")
+}
+
+model EventSession {
+  id        String    @id @default(uuid())
+  eventId   String
+  name      String    // 回の名前（第1回、昼の部など）
+  date      DateTime  // 開催日時
+  location  String    // 開催場所
+  capacity  Int       // その回の定員
+  event     Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  tickets   Ticket[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@map("event_sessions")
+}
+
+model Ticket {
+  id          String       @id @default(uuid())
+  sessionId   String
+  email       String      // メールアドレス
+  name        String      // 氏名
+  qrCode      String       @unique // QRコードの一意な文字列
+  used        Boolean      @default(false)
+  usedAt      DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  session     EventSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  @@map("tickets")
+}
+
+model EventTag {
+  id        String   @id @default(uuid())
+  name      String
+  eventId   String
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now())
+
+  @@unique([name, eventId])
+  @@index([eventId])
+}
