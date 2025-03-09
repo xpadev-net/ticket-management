@@ -103,8 +103,8 @@ export const ticketGenerationSchema = z.object({
 export const searchQuerySchema = z.object({
   query: z.string().optional(),
   tags: z.union([z.string(), z.array(z.string())]).optional(),
-  page: z.coerce.number().int().positive().optional().default(1),
-  limit: z.coerce.number().int().positive().optional().default(10)
+  page: z.number().int().positive().optional().default(1),
+  limit: z.number().int().positive().optional().default(10)
 });
 
 // APIレスポンス用ヘルパー

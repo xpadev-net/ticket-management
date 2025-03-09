@@ -20,11 +20,13 @@ export async function GET(
 ): Promise<NextResponse> {
   try {
     const searchParams = req.nextUrl.searchParams;
+    const page_str = searchParams.get('page');
+    const limit_str = searchParams.get('limit');
     const queryParams = {
       query: searchParams.get('query') || undefined,
       tags: searchParams.getAll('tags') || undefined,
-      page: searchParams.get('page'),
-      limit: searchParams.get('limit')
+      page: page_str ? parseInt(page_str) : undefined,
+      limit: limit_str ? parseInt(limit_str) : undefined
     };
 
     const validationResult = searchQuerySchema.safeParse(queryParams);
