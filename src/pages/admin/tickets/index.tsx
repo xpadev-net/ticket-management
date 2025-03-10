@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useId } from 'react';
 import useSWR, { mutate } from 'swr';
 import AdminLayout from '@/components/admin/layout';
 import QrScanner from '@/components/admin/QrScanner';
@@ -8,6 +8,9 @@ import { toast } from 'sonner';
 import { swrFetcher, fetchWithAuth, putWithAuth } from '@/lib/fetcher';
 import { SessionStatsResponse, SessionStatsResponseItem } from '@/app/api/sessions/stats/route';
 import { TicketStatusUpdateResponse } from '@/app/api/tickets/[qrCode]/route';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
 
 export default function TicketVerification() {
   const [isScanning, setIsScanning] = useState(false);
@@ -24,13 +27,14 @@ export default function TicketVerification() {
 
   // 使いやすいように型変換
   const availableSessions: SessionStatsResponseItem[] = sessionsData || [];
-  const selectedSession = selectedSessionId 
-    ? availableSessions.find(s => s.id === selectedSessionId) 
+  const selectedSession = selectedSessionId
+    ? availableSessions.find(s => s.id === selectedSessionId)
     : null;
 
   // セッション選択処理
   const handleSessionSelect = (sessionId: string) => {
     setSelectedSessionId(sessionId);
+    setIsScanning(false); // Close the selection menu
   };
 
   // セッション統計データを更新
@@ -45,30 +49,33 @@ export default function TicketVerification() {
       toast.error('セッションを選択してください');
       return;
     }
-    
+
     try {
       setProcessingTicket(true);
-      
+
       // 認証付きフェッチャーを使用してチケット情報を取得
       const data = await fetchWithAuth(`/api/tickets/${encodeURIComponent(qrCode)}`) as TicketStatusUpdateResponse;
       setLastVerifiedTicket(data);
-      
+
       // Check if ticket is for the selected session
       if (data.session.id !== selectedSession.id) {
-        toast.error(`このチケットは選択したセッション用ではありません。
-          チケット: ${data.session.event.name} ${data.session.name}
-          選択中: ${selectedSession.event.name} ${selectedSession.name}`, 
-        {
-          duration: 8000,
-          id: 'wrong-session',
-        });
+        toast.error(`このチケットは選択したセッション用ではありません。`,
+          {
+            description: (<div>
+              <p>チケット: {data.session.event.name} {data.session.name}</p>
+              <p>選択中: {selectedSession.event.name} {selectedSession.name}</p>
+            </div>),
+            duration: 8000,
+            id: 'wrong-session',
+          });
         setProcessingTicket(false);
         return;
       }
 
       // Show appropriate notification based on ticket status
       if (data.used) {
-        toast.warning(`このチケットは既に使用されています。${data.name}さん (${data.session.event.name} ${data.session.name})`, {
+        toast.warning(`このチケットは既に使用されています。`, {
+          description: `${data.name}さん (${data.session.event.name} ${data.session.name})`,
           duration: 5000,
           id: 'ticket-verified',
         });
@@ -77,12 +84,13 @@ export default function TicketVerification() {
         // Show confirmation dialog for unused tickets
         setCurrentQrCode(qrCode);
         setShowConfirmation(true);
-        toast.success(`チケット読取完了: ${data.name}さん (${data.session.event.name} ${data.session.name})`, {
+        toast.success(`チケット読取成功`, {
+          description: `${data.name}さん (${data.session.event.name} ${data.session.name})`,
           duration: 5000,
           id: 'ticket-verified',
         });
       }
-      
+
       // Keep scanning active - don't call setIsScanning(false)
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'チケットの検証に失敗しました');
@@ -93,7 +101,7 @@ export default function TicketVerification() {
   // チケット使用処理
   const handleUseTicket = useCallback(async () => {
     if (!currentQrCode) return;
-    
+
     try {
       // 認証付きPUTリクエストを使用
       const data = await putWithAuth(
@@ -106,7 +114,7 @@ export default function TicketVerification() {
         duration: 5000,
         id: 'ticket-used',
       });
-      
+
       // セッション統計を更新
       refreshSessionStats();
     } catch (error) {
@@ -127,16 +135,6 @@ export default function TicketVerification() {
     toast.info('チケットの使用をキャンセルしました', { duration: 3000 });
   }, []);
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString('ja-JP', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
-
   const calculateProgress = (checkedIn: number, total: number) => {
     if (total === 0) return 0;
     return (checkedIn / total) * 100;
@@ -151,48 +149,11 @@ export default function TicketVerification() {
     <AdminLayout title="チケット受付">
       <div className="space-y-6">
         {/* Session selection */}
-        <Card className="p-6">
-          <h2 className="text-xl font-semibold mb-4">セッションの選択</h2>
-          
-          {isLoadingSessions ? (
-            <div className="text-center py-4">セッション情報を読み込み中...</div>
-          ) : availableSessions.length === 0 ? (
-            <div className="text-center py-4 text-amber-600">
-              受付可能なセッションがありません
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                {availableSessions.map((session) => (
-                  <div 
-                    key={session.id}
-                    onClick={() => handleSessionSelect(session.id)}
-                    className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                      selectedSessionId === session.id 
-                        ? 'border-blue-500 bg-blue-50' 
-                        : 'border-gray-200 hover:border-blue-300'
-                    }`}
-                  >
-                    <div className="font-medium">{session.event.name}</div>
-                    <div>{session.name}</div>
-                    <div className="text-sm text-gray-600">{formatDate(session.date)}</div>
-                    <div className="text-sm text-gray-500">{session.location}</div>
-                  </div>
-                ))}
-              </div>
-              
-              <Button 
-                onClick={refreshSessionStats} 
-                variant="outline" 
-                size="sm" 
-                className="mt-2"
-              >
-                統計を更新
-              </Button>
-            </div>
-          )}
-        </Card>
-        
+        <SessionSelection
+          sessions={availableSessions}
+          selectedSessionId={selectedSessionId}
+          onSelect={handleSessionSelect}
+        />
         {/* Session statistics */}
         {selectedSession && (
           <Card className="p-6">
@@ -202,33 +163,27 @@ export default function TicketVerification() {
                 <span>参加予定者数:</span>
                 <span className="font-medium">{selectedSession.stats.total}人</span>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <span>受付済み:</span>
                 <span className="font-medium text-green-600">{selectedSession.stats.checkedIn}人</span>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <span>未受付:</span>
                 <span className="font-medium text-amber-600">{selectedSession.stats.remaining}人</span>
               </div>
-              
+
               <div className="flex items-center justify-between">
                 <span>残席数:</span>
                 <span className="font-medium">{selectedSession.stats.capacityRemaining}席</span>
               </div>
 
               {/* Progress bar */}
-              <div className="w-full h-4 rounded-full overflow-hidden">
-                <div 
-                  className="h-full" 
-                  style={{ 
-                    width: `${calculateProgress(selectedSession.stats.checkedIn, selectedSession.stats.total)}%` 
-                  }}
-                />
-              </div>
+              <Progress value={calculateProgress(selectedSession.stats.checkedIn, selectedSession.stats.total)} />
+              
               <div className="text-xs text-center">
-                {selectedSession.stats.checkedIn} / {selectedSession.stats.total} 
+                {selectedSession.stats.checkedIn} / {selectedSession.stats.total}
                 ({Math.round(calculateProgress(selectedSession.stats.checkedIn, selectedSession.stats.total))}%)
               </div>
             </div>
@@ -261,22 +216,23 @@ export default function TicketVerification() {
           )}
         </Card>
 
-        {/* Ticket usage confirmation dialog */}
-        {showConfirmation && lastVerifiedTicket && (
-          <Card className="p-6 border-2 border-blue-400">
-            <h2 className="text-xl font-semibold mb-4 text-blue-600">チケット使用確認</h2>
+        <Dialog open={!!(showConfirmation && lastVerifiedTicket)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle >チケット使用確認</DialogTitle>
+            </DialogHeader>
             <div className="space-y-2 mb-4">
               <div>
                 <span className="font-medium">参加者名: </span>
-                {lastVerifiedTicket.name}
+                {lastVerifiedTicket?.name}
               </div>
               <div>
                 <span className="font-medium">イベント: </span>
-                {lastVerifiedTicket.session.event.name}
+                {lastVerifiedTicket?.session.event.name}
               </div>
               <div>
                 <span className="font-medium">回: </span>
-                {lastVerifiedTicket.session.name}
+                {lastVerifiedTicket?.session.name}
               </div>
             </div>
             <p className="mb-4 font-medium">このチケットを使用済みとしてマークしますか？</p>
@@ -288,8 +244,8 @@ export default function TicketVerification() {
                 キャンセル
               </Button>
             </div>
-          </Card>
-        )}
+          </DialogContent>
+        </Dialog>
 
         {/* Last verified ticket information */}
         {lastVerifiedTicket && !showConfirmation && (
@@ -339,3 +295,56 @@ export default function TicketVerification() {
     </AdminLayout>
   );
 }
+
+const SessionSelection = ({ sessions, selectedSessionId, onSelect }: {
+  sessions: SessionStatsResponseItem[],
+  selectedSessionId: string | null,
+  onSelect: (sessionId: string) => void,
+}) => {
+  const id = useId();
+  const selectedSession = selectedSessionId ? sessions.find(s => s.id === selectedSessionId) : null;
+  return (
+    <Accordion type="single" collapsible className="w-full" value={selectedSessionId ? undefined : id}>
+      <AccordionItem value={id}>
+        <AccordionTrigger>
+          {selectedSession ? (
+            <div>
+              {selectedSession.event.name} {selectedSession.name}
+            </div>
+          ) : (
+            <div>
+              セッションを選択してください
+            </div>
+          )}
+        </AccordionTrigger>
+        <AccordionContent className='flex flex-col gap-2'>
+          {sessions.map((session) => (
+            <Card
+              key={session.id}
+              onClick={() => onSelect(session.id)}
+              className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedSessionId === session.id
+                  ? 'border-blue-500'
+                  : 'hover:border-blue-300'
+                }`}
+            >
+              <div className="font-medium">{session.event.name}</div>
+              <div>{session.name}</div>
+              <div className="text-sm text-gray-600">{formatDate(session.date)}</div>
+              <div className="text-sm text-gray-500">{session.location}</div>
+            </Card>
+          ))}
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
+  );
+}
+
+const formatDate = (dateString: string) => {
+  return new Date(dateString).toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
