@@ -7,7 +7,11 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import useSWR from 'swr';
-import { swrFetcher } from '@/lib/fetcher';
+import { postWithAuth, swrFetcher } from '@/lib/fetcher';
+import { PublicEventResponse } from '@/app/api/public/events/[id]/route';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { TicketGenerationResponse } from '@/app/api/public/tickets/route';
+import { TicketGenerationRequest } from '@/lib/schema';
 
 interface TicketFormData {
   name: string;
@@ -15,19 +19,11 @@ interface TicketFormData {
   quantity: number;
 }
 
-interface EventSession extends PrismaEventSession {
-  availableSeats: number;
-}
-
-interface EventWithAvailability extends Omit<PrismaEvent, 'sessions'> {
-  sessions: EventSession[];
-}
-
 export default function EventPage() {
   const router = useRouter();
   const { id } = router.query;
-  const { data: event, error, isLoading } = useSWR<EventWithAvailability>(
-    id ? `/api/events/${id}` : null,
+  const { data: event, error, isLoading } = useSWR<PublicEventResponse>(
+    id ? `/api/public/events/${id}` : null,
     swrFetcher
   );
   
@@ -47,18 +43,10 @@ export default function EventPage() {
     }
     setSubmitting(true);
     try {
-      const response = await fetch('/api/tickets', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sessionId: selectedSession,
-          ...formData,
-        }),
+      const response = await postWithAuth<TicketGenerationResponse,TicketGenerationRequest>('/api/public/tickets', {
+        sessionId: selectedSession,
+        applicant: formData
       });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'チケットの申し込みに失敗しました');
-      }
       // 申込完了ページへリダイレクト
       const selectedSessionData = event?.sessions.find(s => s.id === selectedSession);
       router.push({
@@ -105,46 +93,46 @@ export default function EventPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <Label htmlFor="session">セッション選択</Label>
-            <select
-              id="session"
-              className="w-full p-2 border rounded"
-              value={selectedSession || ''}
-              onChange={(e) => setSelectedSession(e.target.value)}
-              required
-            >
-              <option value="">セッションを選択してください</option>
-              {event.sessions.map((session) => (
-                <option 
-                  key={session.id} 
-                  value={session.id}
-                  disabled={session.availableSeats <= 0}
-                >
-                  {session.name} - {new Date(session.date).toLocaleString('ja-JP')} @ {session.location}
-                  （残り{session.availableSeats}席）
-                </option>
-              ))}
-            </select>
+            <Select onValueChange={setSelectedSession}>
+              <SelectTrigger>
+                <SelectValue placeholder="申し込むセッションを選択してください" />
+              </SelectTrigger>
+              <SelectContent>
+                {event.sessions.map((session) => (
+                  <SelectItem 
+                    key={session.id} 
+                    value={session.id}
+                    disabled={session.available <= 0}
+                  >
+                    {session.name} - {new Date(session.date).toLocaleString('ja-JP')} @ {session.location}
+                    （残り{session.available}席）
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <Label htmlFor="quantity">申込人数</Label>
             <Input
+              disabled={submitting || !selectedSession}
               id="quantity"
               type="number"
               min="1"
-              max={selectedSessionData?.availableSeats || 1}
+              max={selectedSessionData?.available || 1}
               value={formData.quantity}
               onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
               required
             />
             {selectedSessionData && (
               <p className="text-sm text-gray-600 mt-1">
-                残り{selectedSessionData.availableSeats}席
+                残り{selectedSessionData.available}席
               </p>
             )}
           </div>
           <div>
             <Label htmlFor="name">お名前</Label>
             <Input
+              disabled={submitting || !selectedSession}
               id="name"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
@@ -154,6 +142,7 @@ export default function EventPage() {
           <div>
             <Label htmlFor="email">メールアドレス</Label>
             <Input
+              disabled={submitting || !selectedSession}
               id="email"
               type="email"
               value={formData.email}

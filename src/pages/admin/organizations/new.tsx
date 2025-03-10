@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
+import { fetchWithAuth, postWithAuth } from '@/lib/fetcher';
+import { OrganizationCreateResponse } from '@/app/api/organizations/route';
 
 export default function NewOrganization() {
   const router = useRouter();
@@ -22,23 +24,10 @@ export default function NewOrganization() {
 
     try {
       const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/organizations', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || '組織の作成に失敗しました');
-      }
+      const {organization} = await postWithAuth<OrganizationCreateResponse>('/api/organizations', formData);
 
       toast.success('組織を作成しました');
-      router.push(`/admin/organizations/${data.id}`);
+      router.push(`/admin/organizations/${organization.id}`);
     } catch (error) {
       toast.error(error instanceof Error ? error.message : '組織の作成に失敗しました');
     } finally {

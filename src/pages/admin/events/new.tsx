@@ -8,18 +8,14 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Organization, EventSessionRequest } from '@/lib/types';
 import useSWR from 'swr';
-
-const fetcher = (url: string) => fetch(url, {
-  headers: {
-    Authorization: `Bearer ${localStorage.getItem('auth_token')}`,
-  },
-}).then(res => res.json());
+import { OrganizationResponse } from '@/app/api/organizations/route';
+import { fetchWithAuth, postWithAuth } from '@/lib/fetcher';
+import { EventCreateResponse } from '@/app/api/events/route';
 
 export default function NewEvent() {
   const router = useRouter();
   const { organizationId } = router.query;
   const [loading, setLoading] = useState(false);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -34,7 +30,7 @@ export default function NewEvent() {
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
 
-  const { data: organizationsData, error } = useSWR('/api/organizations', fetcher);
+  const { data: organizations, error } = useSWR<OrganizationResponse>('/api/organizations', fetchWithAuth);
 
   useEffect(() => {
     if (organizationId) {
@@ -42,42 +38,23 @@ export default function NewEvent() {
     }
   }, [organizationId]);
 
-  useEffect(() => {
-    if (error) {
-      toast.error(error.message || '組織情報の取得に失敗しました');
-    } else if (organizationsData) {
-      const allOrgs = [...organizationsData.owned, ...organizationsData.member];
-      setOrganizations(allOrgs);
-    }
-  }, [organizationsData, error]);
+  if (error || !organizations) {
+    return <div>エラーが発生しました</div>;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
-      const token = localStorage.getItem('auth_token');
-      const response = await fetch('/api/events', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ...formData,
-          sessions: sessions.map(session => ({
-            ...session,
-            capacity: parseInt(session.capacity.toString())
-          })),
-          tags
-        }),
+      const data = await postWithAuth<EventCreateResponse>('/api/events', {
+        ...formData,
+        sessions: sessions.map(session => ({
+          ...session,
+          capacity: parseInt(session.capacity.toString())
+        })),
+        tags
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'イベントの作成に失敗しました');
-      }
 
       toast.success('イベントを作成しました');
       router.push(`/admin/events/${data.id}`);

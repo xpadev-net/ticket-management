@@ -50,6 +50,24 @@ export async function GET(
       );
     }
 
+    // 認証チェック
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return NextResponse.json(
+        createApiError('認証が必要です'),
+        { status: 401 }
+      );
+    }
+
+    const token = authHeader.substring(7);
+    const user = await getUserFromToken(token);
+    if (!user) {
+      return NextResponse.json(
+        createApiError('認証が必要です'),
+        { status: 401 }
+      );
+    }
+
     const { id } = validatedParams.data;
 
     const event = await prisma.event.findUnique({
@@ -59,6 +77,9 @@ export async function GET(
         sessions: {
           include: {
             tickets: true,
+          },
+          orderBy: {
+            date: 'asc'
           }
         },
         tags: true
@@ -146,7 +167,11 @@ export async function PUT(
       where: { id },
       include: {
         organization: true,
-        sessions: true,
+        sessions: {
+          orderBy: {
+            date: 'asc'
+          }
+        },
         tags: true
       }
     });
@@ -210,7 +235,11 @@ export async function PUT(
       },
       include: {
         organization: true,
-        sessions: true,
+        sessions: {
+          orderBy: {
+            date: 'asc'
+          }
+        },
         tags: true
       }
     });
@@ -272,6 +301,9 @@ export async function DELETE(
         sessions: {
           include: {
             tickets: true
+          },
+          orderBy: {
+            date: 'asc'
           }
         }
       }

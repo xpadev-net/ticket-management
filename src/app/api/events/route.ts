@@ -73,16 +73,16 @@ export async function GET(
             { sessions: { some: { name: { contains: query } } } }
           ]
         : undefined,
-      AND: tags
-        ? [{ 
-            tags: { 
-              some: { 
-                name: { 
-                  in: Array.isArray(tags) ? tags : [tags] 
-                } 
-              } 
-            } 
-          }]
+      AND: Array.isArray(tags) && tags.length > 0
+        ? {
+            tags: {
+              some: {
+                name: {
+                  in: tags
+                }
+              }
+            }
+          }
         : undefined
     };
 
@@ -148,9 +148,30 @@ export async function GET(
   }
 }
 
+export type EventCreateResponse = {
+  id: string;
+  name: string;
+  description: string;
+  organization: {
+    id: string;
+    name: string;
+  };
+  sessions: {
+    id: string;
+    name: string;
+    date: string;
+    location: string;
+    capacity: number;
+  }[];
+  tags: {
+    id: string;
+    name: string;
+  }[];
+};
+
 export async function POST(
   req: NextRequest
-): Promise<NextResponse> {
+): Promise<NextResponse<ApiResponse<EventCreateResponse>>> {
   try {
     // 認証チェック
     const authHeader = req.headers.get('authorization');
@@ -206,7 +227,7 @@ export async function POST(
         sessions: {
           create: sessions.map(session => ({
             name: session.name,
-            date: session.date,
+            date: new Date(session.date),
             location: session.location,
             capacity: session.capacity
           }))
@@ -225,7 +246,23 @@ export async function POST(
     });
 
     return NextResponse.json(
-      createApiResponse({ event })
+      createApiResponse({
+        id: event.id,
+        name: event.name,
+        description: event.description,
+        organization: {
+          id: event.organization.id,
+          name: event.organization.name
+        },
+        sessions: event.sessions.map(session => ({
+          id: session.id,
+          name: session.name,
+          date: session.date.toISOString(),
+          location: session.location,
+          capacity: session.capacity
+        })),
+        tags: event.tags
+      })
     );
   } catch (error) {
     console.error('Error creating event:', error);

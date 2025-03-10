@@ -133,9 +133,24 @@ export async function GET(
   }
 }
 
+export type OrganizationCreateResponse = {
+  organization: {
+    id: string;
+    name: string;
+    description: string | null;
+    logoUrl: string | null;
+    owner: {
+      id: string;
+      name: string;
+      email: string;
+    };
+  };
+};
+  
+
 export async function POST(
   req: NextRequest
-): Promise<NextResponse> {
+): Promise<NextResponse<ApiResponse<OrganizationCreateResponse>>> {
   try {
     // 認証チェック
     const authHeader = req.headers.get('authorization');

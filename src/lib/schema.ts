@@ -33,7 +33,7 @@ export const userRegistrationSchema = z.object({
 export const organizationSchema = z.object({
   name: z.string().min(1, { message: "組織名を入力してください" }),
   description: z.string().optional(),
-  logoUrl: z.string().url().optional()
+  logoUrl: z.preprocess((val) => val || undefined, z.string().url().optional())
 });
 
 // メンバー招待関連
@@ -98,6 +98,7 @@ export const ticketGenerationSchema = z.object({
   sessionId: z.string().uuid(),
   applicant: ticketApplicantSchema
 });
+export type TicketGenerationRequest = z.infer<typeof ticketGenerationSchema>;
 
 // 検索クエリ関連
 export const searchQuerySchema = z.object({
