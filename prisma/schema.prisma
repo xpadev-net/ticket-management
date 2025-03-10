@@ -84,16 +84,21 @@ model EventSession {
 }
 
 model Ticket {
-  id          String       @id @default(uuid())
-  sessionId   String
-  email       String      // メールアドレス
-  name        String      // 氏名
-  qrCode      String       @unique // QRコードの一意な文字列
-  used        Boolean      @default(false)
-  usedAt      DateTime?
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  session     EventSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  id             String       @id @default(uuid())
+  sessionId      String
+  email          String      // メールアドレス
+  name           String      // 氏名
+  qrCode         String       @unique // QRコードの一意な文字列
+  used           Boolean      @default(false) // チケットが使用済みかどうか（一部使用も含む）
+  usedAt         DateTime?   // 最初に使用された時間
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  session        EventSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  isGroup        Boolean      @default(false) // 団体チケットかどうか
+  groupSize      Int          @default(1) // チケットの合計人数（個人の場合は1、団体の場合は2以上）
+  usedCount      Int          @default(0) // 使用済みの人数（部分受付の追跡用）
+  fullyUsed      Boolean      @default(false) // 完全に使用済みか（全員受付済みか）
+  lastUsedAt     DateTime?    // 最後に使用された時間
   
   @@map("tickets")
 }

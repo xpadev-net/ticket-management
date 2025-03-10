@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 import { postWithAuth, swrFetcher } from '@/lib/fetcher';
@@ -17,6 +18,7 @@ interface TicketFormData {
   name: string;
   email: string;
   quantity: number;
+  isGroupTicket: boolean;
 }
 
 export default function EventPage() {
@@ -31,7 +33,8 @@ export default function EventPage() {
   const [formData, setFormData] = useState<TicketFormData>({
     name: '',
     email: '',
-    quantity: 1
+    quantity: 1,
+    isGroupTicket: false
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -41,12 +44,14 @@ export default function EventPage() {
       toast.error('セッションを選択してください');
       return;
     }
+
     setSubmitting(true);
     try {
       const response = await postWithAuth<TicketGenerationResponse,TicketGenerationRequest>('/api/public/tickets', {
         sessionId: selectedSession,
         applicant: formData
       });
+
       // 申込完了ページへリダイレクト
       const selectedSessionData = event?.sessions.find(s => s.id === selectedSession);
       router.push({
@@ -54,7 +59,8 @@ export default function EventPage() {
         query: {
           eventName: event?.name,
           sessionName: selectedSessionData?.name,
-          quantity: formData.quantity
+          quantity: formData.quantity,
+          isGroup: formData.isGroupTicket
         }
       });
     } catch (error) {
@@ -111,6 +117,7 @@ export default function EventPage() {
               </SelectContent>
             </Select>
           </div>
+
           <div>
             <Label htmlFor="quantity">申込人数</Label>
             <Input
@@ -129,6 +136,40 @@ export default function EventPage() {
               </p>
             )}
           </div>
+
+          {/* チケットタイプ選択 */}
+          <div>
+            <Label className="mb-2 block">チケットタイプ</Label>
+            <RadioGroup 
+              value={formData.isGroupTicket ? 'group' : 'individual'} 
+              onValueChange={(value) => setFormData({ 
+                ...formData, 
+                isGroupTicket: value === 'group' 
+              })}
+              className="flex flex-col space-y-2"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="individual" id="individual" />
+                <Label htmlFor="individual" className="cursor-pointer">
+                  個人チケット（バラ）- 人数分のチケットを発行します
+                </Label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="group" id="group" />
+                <Label htmlFor="group" className="cursor-pointer">
+                  団体チケット（1枚） - グループ全員で1枚のチケットを使用します
+                </Label>
+              </div>
+            </RadioGroup>
+            <div className="mt-2 text-sm text-gray-600">
+              {formData.isGroupTicket ? (
+                <p>※団体チケットは、家族やグループで一緒に入場する場合に適しています。1枚のQRコードで全員が一緒に入場できます。</p>
+              ) : (
+                <p>※個人チケットは、同行者が別々のタイミングで入場する可能性がある場合に適しています。代表者に全員分のQRコードが送付されます。</p>
+              )}
+            </div>
+          </div>
+
           <div>
             <Label htmlFor="name">お名前</Label>
             <Input
@@ -139,6 +180,7 @@ export default function EventPage() {
               required
             />
           </div>
+
           <div>
             <Label htmlFor="email">メールアドレス</Label>
             <Input
@@ -150,6 +192,7 @@ export default function EventPage() {
               required
             />
           </div>
+
           <Button type="submit" disabled={submitting || !selectedSession}>
             {submitting ? '送信中...' : 'チケットを申し込む'}
           </Button>

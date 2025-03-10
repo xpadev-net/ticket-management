@@ -10,6 +10,11 @@ export type TicketResponse = {
   name: string;
   used: boolean;
   usedAt: string | null;
+  isGroup: boolean;
+  groupSize: number;
+  usedCount: number;
+  fullyUsed: boolean;
+  lastUsedAt: string | null;
   session: {
     id: string;
     name: string;
@@ -70,6 +75,11 @@ export async function GET(
         name: ticket.name,
         used: ticket.used,
         usedAt: ticket.usedAt?.toISOString() || null,
+        isGroup: ticket.isGroup,
+        groupSize: ticket.groupSize,
+        usedCount: ticket.usedCount,
+        fullyUsed: ticket.fullyUsed,
+        lastUsedAt: ticket.lastUsedAt?.toISOString() || null,
         session: {
           id: ticket.session.id,
           name: ticket.session.name,
@@ -108,6 +118,11 @@ export type TicketStatusUpdateResponse = {
   usedAt: string | null;
   name: string;
   email: string;
+  isGroup: boolean;
+  groupSize: number;
+  usedCount: number;
+  fullyUsed: boolean;
+  lastUsedAt: string | null;
   session: {
     id: string;
     name: string,
@@ -172,7 +187,7 @@ export async function PUT(
       );
     }
 
-    const { used } = validationResult.data;
+    const { used, isGroupTicket, groupSize, partialUse, useCount } = validationResult.data;
 
     // チケットの検索と関連データの取得
     const ticket = await prisma.ticket.findUnique({
@@ -206,21 +221,68 @@ export async function PUT(
       );
     }
 
-    // チケットが既に使用済みかチェック
-    if (ticket.used && used) {
+    // 個人チケットを団体として受付しようとした場合はエラー
+    if (!ticket.isGroup && isGroupTicket) {
       return NextResponse.json(
-        createApiError('このチケットは既に使用済みです'),
+        createApiError('個人チケットは団体として受付できません。個人チケットで処理してください。'),
         { status: 400 }
       );
+    }
+
+    // チケットが完全に使用済みの場合はエラー
+    if (ticket.fullyUsed) {
+      return NextResponse.json(
+        createApiError('このチケットは既に全員分使用済みです'),
+        { status: 400 }
+      );
+    }
+
+    // 更新データの準備
+    const now = new Date();
+    const updateData: any = {
+      lastUsedAt: now
+    };
+    
+    // 初回使用の場合はusedAtを設定
+    if (!ticket.used) {
+      updateData.usedAt = now;
+      updateData.used = true;
+    }
+
+    // 団体チケットの処理
+    if (ticket.isGroup) {
+      // 部分受付（団体チケットの場合）
+      if (partialUse && useCount) {
+        // 使用人数のチェック
+        const remainingCount = ticket.groupSize - ticket.usedCount;
+        if (useCount > remainingCount) {
+          return NextResponse.json(
+            createApiError(`受付人数が残りの人数を超えています。残り: ${remainingCount}名`),
+            { status: 400 }
+          );
+        }
+
+        // 使用人数を加算
+        const newUsedCount = ticket.usedCount + useCount;
+        updateData.usedCount = newUsedCount;
+        
+        // 全員分使用済みかどうか
+        updateData.fullyUsed = newUsedCount >= ticket.groupSize;
+      } else {
+        // 通常の使用（一度に全員分を使用）
+        updateData.usedCount = groupSize || ticket.groupSize;
+        updateData.fullyUsed = true;
+      }
+    } else {
+      // 個人チケットの場合は単純に使用済みに
+      updateData.usedCount = 1;
+      updateData.fullyUsed = true;
     }
 
     // チケットの更新
     const updatedTicket = await prisma.ticket.update({
       where: { qrCode },
-      data: {
-        used,
-        usedAt: used ? new Date() : null
-      },
+      data: updateData,
       include: {
         session: {
           include: {
@@ -241,6 +303,11 @@ export async function PUT(
       usedAt: updatedTicket.usedAt?.toISOString() || null,
       name: updatedTicket.name,
       email: updatedTicket.email,
+      isGroup: updatedTicket.isGroup,
+      groupSize: updatedTicket.groupSize,
+      usedCount: updatedTicket.usedCount,
+      fullyUsed: updatedTicket.fullyUsed,
+      lastUsedAt: updatedTicket.lastUsedAt?.toISOString() || null,
       session: {
         id: updatedTicket.session.id,
         name: updatedTicket.session.name,

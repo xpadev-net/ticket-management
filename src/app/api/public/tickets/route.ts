@@ -11,6 +11,8 @@ export type TicketGenerationResponse = {
     name: string;
     email: string;
     sessionId: string;
+    isGroup: boolean;
+    groupSize: number;
     session: {
       id: string;
       name: string;
@@ -47,7 +49,7 @@ export async function POST(
     }
 
     const { sessionId, applicant } = validationResult.data;
-    const { name, email, quantity } = applicant;
+    const { name, email, quantity, isGroupTicket } = applicant;
 
     // セッション存在チェックと容量チェック
     const session = await prisma.eventSession.findUnique({
@@ -78,30 +80,60 @@ export async function POST(
       );
     }
 
-    // QRコード生成とチケット作成
-    const tickets = await Promise.all(
-      Array.from({ length: quantity }, async () => {
-        return prisma.ticket.create({
-          data: {
-            qrCode: crypto.randomUUID(),
-            email,
-            name,
-            sessionId: session.id
-          },
-          include: {
-            session: {
-              include: {
-                event: {
-                  include: {
-                    organization: true
-                  }
+    let tickets = [];
+
+    if (isGroupTicket) {
+      // 団体チケットの場合: 1枚のチケットを発行
+      const ticket = await prisma.ticket.create({
+        data: {
+          qrCode: crypto.randomUUID(),
+          email,
+          name,
+          sessionId: session.id,
+          isGroup: true,
+          groupSize: quantity
+        },
+        include: {
+          session: {
+            include: {
+              event: {
+                include: {
+                  organization: true
                 }
               }
             }
           }
-        });
-      })
-    );
+        }
+      });
+      tickets = [ticket];
+    } else {
+      // 個人チケットの場合: 人数分のチケットを発行
+      tickets = await Promise.all(
+        Array.from({ length: quantity }, async () => {
+          return prisma.ticket.create({
+            data: {
+              qrCode: crypto.randomUUID(),
+              email,
+              name,
+              sessionId: session.id,
+              isGroup: false,
+              groupSize: 1
+            },
+            include: {
+              session: {
+                include: {
+                  event: {
+                    include: {
+                      organization: true
+                    }
+                  }
+                }
+              }
+            }
+          });
+        })
+      );
+    }
 
     // メール送信用のHTML/テキスト生成
     const emailHtml = generateTicketEmailHtml(tickets);
@@ -120,6 +152,8 @@ export async function POST(
         name: ticket.name,
         email: ticket.email,
         sessionId: ticket.sessionId,
+        isGroup: ticket.isGroup,
+        groupSize: ticket.groupSize,
         session: {
           id: ticket.session.id,
           name: ticket.session.name,

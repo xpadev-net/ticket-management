@@ -13,7 +13,11 @@ export const qrCodeSchema = z.object({
 
 // チケットステータス更新関連
 export const ticketStatusUpdateSchema = z.object({
-  used: z.boolean()
+  used: z.boolean(),
+  groupSize: z.number().int().positive().optional(), // 団体チケットの人数
+  isGroupTicket: z.boolean().optional(), // 団体チケットフラグ
+  partialUse: z.boolean().optional(), // 部分受付フラグ
+  useCount: z.number().int().positive().optional() // 部分受付時の受付人数
 });
 
 // ログイン関連
@@ -90,7 +94,8 @@ export const ticketRequestSchema = z.object({
 export const ticketApplicantSchema = z.object({
   name: z.string().min(1, { message: "代表者名を入力してください" }),
   email: z.string().email({ message: "有効なメールアドレスを入力してください" }),
-  quantity: z.number().int().min(1, { message: "枚数を入力してください" }).max(10, { message: "一度に申し込めるのは10枚までです" })
+  quantity: z.number().int().min(1, { message: "枚数を入力してください" }).max(10, { message: "一度に申し込めるのは10枚までです" }),
+  isGroupTicket: z.boolean().optional().default(false) // 団体チケットフラグ
 });
 
 // チケット生成関連
