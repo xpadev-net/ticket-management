@@ -35,12 +35,39 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse<Se
     if (!user) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
+    const orgs = await prisma.organization.findMany({
+      where: {
+        OR: [
+          {
+            members: {
+              some: {
+                userId: user.id
+              }
+            }
+          },
+          {
+            ownerId: user.id
+          }
+        ]
+      }
+    });
+
 
     const sessions = await prisma.eventSession.findMany({
+      where: {
+        event: {
+          organizationId: {
+            in: orgs.map(org => org.id)
+          }
+        }
+      },  
       include: {
         event: true,
         tickets: true,
       },
+      orderBy: {
+        date: 'asc'
+      }
     });
 
     const sessionStats = sessions.map(session => {
