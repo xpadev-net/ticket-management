@@ -14,6 +14,9 @@ import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { SessionTicketsResponse } from '@/app/api/sessions/[id]/tickets/route';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
 
 // チケットタイプの定義
 enum TicketType {
@@ -41,6 +44,12 @@ export default function TicketVerification() {
     swrFetcher
   );
 
+  // チケット一覧のデータフェッチを追加
+  const { data: ticketsData, error: ticketsError, isLoading: isLoadingTickets } = useSWR<SessionTicketsResponse>(
+    selectedSessionId ? `/api/sessions/${selectedSessionId}/tickets` : null,
+    swrFetcher
+  );
+
   // 使いやすいように型変換
   const availableSessions: SessionStatsResponseItem[] = sessionsData || [];
   const selectedSession = selectedSessionId
@@ -57,6 +66,13 @@ export default function TicketVerification() {
   const refreshSessionStats = useCallback(() => {
     mutate('/api/sessions/stats');
   }, []);
+
+  // チケット一覧の更新関数
+  const refreshTickets = useCallback(() => {
+    if (selectedSessionId) {
+      mutate(`/api/sessions/${selectedSessionId}/tickets`);
+    }
+  }, [selectedSessionId]);
 
   // チケットスキャン処理
   const handleScan = useCallback(async (qrCode: string) => {
@@ -204,8 +220,9 @@ export default function TicketVerification() {
         });
       }
 
-      // セッション統計を更新
+      // セッション統計とチケット一覧を更新
       refreshSessionStats();
+      refreshTickets();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'チケット使用の処理に失敗しました');
     } finally {
@@ -214,7 +231,7 @@ export default function TicketVerification() {
       setCurrentQrCode(null);
       setProcessingTicket(false);
     }
-  }, [currentQrCode, refreshSessionStats, ticketType, groupSize, partialUseCount]);
+  }, [currentQrCode, refreshSessionStats, ticketType, groupSize, partialUseCount, refreshTickets]);
 
   const handleCancelUse = useCallback(() => {
     // 確認ダイアログを閉じる（チケットを使用せず）
@@ -602,6 +619,89 @@ export default function TicketVerification() {
             </div>
           </Card>
         )}
+
+        {/* チケット一覧 */}
+        {selectedSession && (
+          <Card className="p-6">
+            <h2 className="text-xl font-semibold mb-4">チケット一覧</h2>
+            {isLoadingTickets ? (
+              <div className="text-center py-4">読み込み中...</div>
+            ) : ticketsError ? (
+              <div className="text-center py-4 text-red-600">
+                チケット情報の取得に失敗しました
+              </div>
+            ) : !ticketsData?.tickets.length ? (
+              <div className="text-center py-4 text-gray-500">
+                チケットがありません
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className='w-[200px]'>
+                          氏名
+                        </TableHead>
+                        <TableHead className='w-[200px]'>
+                          メールアドレス
+                        </TableHead>
+                        <TableHead className='w-[50px]'>
+                          種別
+                        </TableHead>
+                        <TableHead className='w-[100px]'>
+                          状態
+                        </TableHead>
+                        <TableHead className='w-[100px]'>
+                          最終使用日時
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {ticketsData.tickets.map((ticket) => (
+                        <TableRow 
+                          key={ticket.id}
+                        >
+                          <TableCell>
+                            {ticket.name}
+                          </TableCell>
+                          <TableCell>
+                            {ticket.email}
+                          </TableCell>
+                          <TableCell>
+                            {ticket.isGroup ? (
+                              `団体 (${ticket.groupSize}名)`
+                            ) : '個人'}
+                          </TableCell>
+                          <TableCell className="px-6 py-4 whitespace-nowrap">
+                            <Badge className={`${
+                              ticket.fullyUsed
+                                ? 'bg-gray-100 text-gray-800'
+                                : ticket.used
+                                ? 'bg-yellow-100 text-yellow-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                              {ticket.fullyUsed 
+                                ? '完全使用済' 
+                                : ticket.used 
+                                  ? `部分使用済 (${ticket.usedCount}/${ticket.groupSize}名)` 
+                                  : '未使用'}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {ticket.lastUsedAt 
+                              ? formatDate(ticket.lastUsedAt)
+                              : '-'}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
       </div>
     </AdminLayout>
   );
@@ -650,8 +750,8 @@ const SessionSelection = ({ sessions, selectedSessionId, onSelect }: {
   );
 }
 
-const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleString('ja-JP', {
+const formatDate = (dateString: string|Date) => {
+  return (dateString instanceof Date ? dateString : new Date(dateString)).toLocaleString('ja-JP', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',
