@@ -262,7 +262,7 @@ export default function EventPage() {
                   id="notes"
                   value={formData.notes}
                   onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                  placeholder="食事の制限やその他の要望があればご記入ください"
+                  placeholder="要望や配慮が必要な事項があればご記入ください"
                   className="min-h-[100px]"
                 />
               </div>
