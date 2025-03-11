@@ -9,7 +9,9 @@ export type TicketGenerationResponse = {
     id: string;
     qrCode: string;
     name: string;
+    nameKana: string;
     email: string;
+    notes?: string; // 備考欄フィールドを追加
     sessionId: string;
     isGroup: boolean;
     groupSize: number;
@@ -49,7 +51,7 @@ export async function POST(
     }
 
     const { sessionId, applicant } = validationResult.data;
-    const { name, email, quantity, isGroupTicket } = applicant;
+    const { name, nameKana, email, quantity, isGroupTicket, notes } = applicant; // notesを追加
 
     // セッション存在チェックと容量チェック
     const session = await prisma.eventSession.findUnique({
@@ -89,6 +91,8 @@ export async function POST(
           qrCode: crypto.randomUUID(),
           email,
           name,
+          nameKana,
+          notes, // notesフィールドを追加
           sessionId: session.id,
           isGroup: true,
           groupSize: quantity
@@ -115,6 +119,8 @@ export async function POST(
               qrCode: crypto.randomUUID(),
               email,
               name,
+              nameKana,
+              notes, // notesフィールドを追加 
               sessionId: session.id,
               isGroup: false,
               groupSize: 1
@@ -150,7 +156,9 @@ export async function POST(
         id: ticket.id,
         qrCode: ticket.qrCode,
         name: ticket.name,
+        nameKana: ticket.nameKana,
         email: ticket.email,
+        notes: ticket.notes || undefined,
         sessionId: ticket.sessionId,
         isGroup: ticket.isGroup,
         groupSize: ticket.groupSize,

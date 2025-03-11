@@ -93,9 +93,11 @@ export const ticketRequestSchema = z.object({
 // チケット申込者情報
 export const ticketApplicantSchema = z.object({
   name: z.string().min(1, { message: "代表者名を入力してください" }),
+  nameKana: z.string().min(1, { message: "ふりがなを入力してください" }),
   email: z.string().email({ message: "有効なメールアドレスを入力してください" }),
   quantity: z.number().int().min(1, { message: "枚数を入力してください" }).max(10, { message: "一度に申し込めるのは10枚までです" }),
-  isGroupTicket: z.boolean().optional().default(false) // 団体チケットフラグ
+  isGroupTicket: z.boolean().optional().default(false), // 団体チケットフラグ
+  notes: z.string().optional() // 備考欄（任意）
 });
 
 // チケット生成関連

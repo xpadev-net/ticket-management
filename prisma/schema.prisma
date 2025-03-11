@@ -61,7 +61,8 @@ model Event {
   organizationId String
   organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   sessions       EventSession[]
-  tags           EventTag[]    // 追加
+  tags           EventTag[]    
+  imageUrl       String?       
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
@@ -88,6 +89,8 @@ model Ticket {
   sessionId      String
   email          String      // メールアドレス
   name           String      // 氏名
+  nameKana       String      // 氏名のふりがな
+  notes          String?     @db.Text // 備考欄（任意）
   qrCode         String       @unique // QRコードの一意な文字列
   used           Boolean      @default(false) // チケットが使用済みかどうか（一部使用も含む）
   usedAt         DateTime?   // 最初に使用された時間
@@ -109,7 +112,7 @@ model EventTag {
   eventId   String
   event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-  updatedAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@unique([name, eventId])
   @@index([eventId])

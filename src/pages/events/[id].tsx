@@ -1,6 +1,5 @@
-import { useState } from 'react';
+import { useState, useId } from 'react';
 import { useRouter } from 'next/router';
-import { Event as PrismaEvent, EventSession as PrismaEventSession } from '@/lib/types';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,15 +9,18 @@ import { toast } from 'sonner';
 import useSWR from 'swr';
 import { postWithAuth, swrFetcher } from '@/lib/fetcher';
 import { PublicEventResponse } from '@/app/api/public/events/[id]/route';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea'; // テキストエリアコンポーネントをインポート
 import { TicketGenerationResponse } from '@/app/api/public/tickets/route';
 import { TicketGenerationRequest } from '@/lib/schema';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 interface TicketFormData {
   name: string;
+  nameKana: string;
   email: string;
   quantity: number;
   isGroupTicket: boolean;
+  notes: string; // 備考欄フィールドを追加
 }
 
 export default function EventPage() {
@@ -32,12 +34,15 @@ export default function EventPage() {
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [formData, setFormData] = useState<TicketFormData>({
     name: '',
+    nameKana: '',
     email: '',
     quantity: 1,
-    isGroupTicket: false
+    isGroupTicket: false,
+    notes: '', // 備考欄の初期値
   });
   const [submitting, setSubmitting] = useState(false);
-
+  const accordionId = useId();
+  
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSession) {
@@ -74,6 +79,11 @@ export default function EventPage() {
     ? event?.sessions.find(s => s.id === selectedSession)
     : null;
 
+  // セッション選択ハンドラ
+  const handleSessionSelect = (sessionId: string) => {
+    setSelectedSession(sessionId);
+  };
+
   if (isLoading) {
     return <div className="container mx-auto p-4">読み込み中...</div>;
   }
@@ -90,112 +100,178 @@ export default function EventPage() {
     return <div className="container mx-auto p-4">イベントが見つかりません</div>;
   }
 
+  // セッション日時をフォーマットする関数
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleString('ja-JP', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
   return (
     <div className="container mx-auto p-4">
       <Card className="p-6">
         <h1 className="text-2xl font-bold mb-4">{event.name}</h1>
         <p className="mb-6">{event.description}</p>
         <h2 className="text-xl font-bold mb-4">チケット申し込み</h2>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="session">セッション選択</Label>
-            <Select onValueChange={setSelectedSession}>
-              <SelectTrigger>
-                <SelectValue placeholder="申し込むセッションを選択してください" />
-              </SelectTrigger>
-              <SelectContent>
-                {event.sessions.map((session) => (
-                  <SelectItem 
-                    key={session.id} 
-                    value={session.id}
-                    disabled={session.available <= 0}
-                  >
-                    {session.name} - {new Date(session.date).toLocaleString('ja-JP')} @ {session.location}
-                    （残り{session.available}席）
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <Label htmlFor="quantity">申込人数</Label>
-            <Input
-              disabled={submitting || !selectedSession}
-              id="quantity"
-              type="number"
-              min="1"
-              max={selectedSessionData?.available || 1}
-              value={formData.quantity}
-              onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
-              required
-            />
-            {selectedSessionData && (
-              <p className="text-sm text-gray-600 mt-1">
-                残り{selectedSessionData.available}席
-              </p>
-            )}
-          </div>
-
-          {/* チケットタイプ選択 */}
-          <div>
-            <Label className="mb-2 block">チケットタイプ</Label>
-            <RadioGroup 
-              value={formData.isGroupTicket ? 'group' : 'individual'} 
-              onValueChange={(value) => setFormData({ 
-                ...formData, 
-                isGroupTicket: value === 'group' 
-              })}
-              className="flex flex-col space-y-2"
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* セッション選択のアコーディオン */}
+          <div className="mb-6">
+            <Accordion 
+              type="single" 
+              collapsible 
+              className="w-full" 
+              value={selectedSession ? undefined : accordionId}
             >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="individual" id="individual" />
-                <Label htmlFor="individual" className="cursor-pointer">
-                  個人チケット（バラ）- 人数分のチケットを発行します
-                </Label>
+              <AccordionItem value={accordionId}>
+                <AccordionTrigger className="py-4">
+                  {selectedSessionData ? (
+                    <div className="text-left">
+                      {selectedSessionData.name} - {formatDate(selectedSessionData.date)} @ {selectedSessionData.location}
+                    </div>
+                  ) : (
+                    <div>セッションを選択してください</div>
+                  )}
+                </AccordionTrigger>
+                <AccordionContent className='flex flex-col gap-2 py-2'>
+                  {event.sessions.map((session) => (
+                    <Card
+                      key={session.id}
+                      onClick={() => handleSessionSelect(session.id)}
+                      className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                        session.available <= 0 ? 'opacity-50 cursor-not-allowed' : 
+                        selectedSession === session.id
+                          ? 'border-blue-500 bg-blue-50'
+                          : 'hover:border-blue-300'
+                      }`}
+                      style={{ pointerEvents: session.available <= 0 ? 'none' : 'auto' }}
+                    >
+                      <div className="font-medium">{session.name}</div>
+                      <div className="text-sm text-gray-600">{formatDate(session.date)}</div>
+                      <div className="text-sm text-gray-500">{session.location}</div>
+                      <div className={`text-sm mt-1 ${
+                        session.available <= 0 ? 'text-red-600' : 'text-green-600'
+                      }`}>
+                        残り{session.available}席
+                      </div>
+                    </Card>
+                  ))}
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
+
+          {/* セッション選択後のみ表示する申込フォーム */}
+          {selectedSessionData && (
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="quantity">申込人数</Label>
+                <Input
+                  disabled={submitting}
+                  id="quantity"
+                  type="number"
+                  min="1"
+                  max={selectedSessionData.available}
+                  value={formData.quantity}
+                  onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) || 1 })}
+                  required
+                />
+                <p className="text-sm text-gray-600 mt-1">
+                  残り{selectedSessionData.available}席
+                </p>
               </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="group" id="group" />
-                <Label htmlFor="group" className="cursor-pointer">
-                  団体チケット（1枚） - グループ全員で1枚のチケットを使用します
-                </Label>
-              </div>
-            </RadioGroup>
-            <div className="mt-2 text-sm text-gray-600">
-              {formData.isGroupTicket ? (
-                <p>※団体チケットは、家族やグループで一緒に入場する場合に適しています。1枚のQRコードで全員が一緒に入場できます。</p>
-              ) : (
-                <p>※個人チケットは、同行者が別々のタイミングで入場する可能性がある場合に適しています。代表者に全員分のQRコードが送付されます。</p>
+
+              {/* チケットタイプ選択 - 2人以上の場合のみ表示 */}
+              {formData.quantity >= 2 && (
+                <div>
+                  <Label className="mb-2 block">チケットタイプ</Label>
+                  <RadioGroup 
+                    value={formData.isGroupTicket ? 'group' : 'individual'} 
+                    onValueChange={(value) => setFormData({ 
+                      ...formData, 
+                      isGroupTicket: value === 'group' 
+                    })}
+                    className="flex flex-col space-y-2"
+                  >
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="individual" id="individual" />
+                      <Label htmlFor="individual" className="cursor-pointer">
+                        個人チケット（バラ）- 人数分のチケットを発行します
+                      </Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <RadioGroupItem value="group" id="group" />
+                      <Label htmlFor="group" className="cursor-pointer">
+                        団体チケット（1枚） - グループ全員で1枚のチケットを使用します
+                      </Label>
+                    </div>
+                  </RadioGroup>
+                  <div className="mt-2 text-sm text-gray-600">
+                    {formData.isGroupTicket ? (
+                      <p>※団体チケットは、家族やグループで一緒に入場する場合に適しています。1枚のQRコードで全員が一緒に入場できます。</p>
+                    ) : (
+                      <p>※個人チケットは、同行者が別々のタイミングで入場する可能性がある場合に適しています。代表者に全員分のQRコードが送付されます。</p>
+                    )}
+                  </div>
+                </div>
               )}
+
+              <div>
+                <Label htmlFor="name">お名前</Label>
+                <Input
+                  disabled={submitting}
+                  id="name"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  required
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="nameKana">お名前（ふりがな）</Label>
+                <Input
+                  disabled={submitting}
+                  id="nameKana"
+                  value={formData.nameKana}
+                  onChange={(e) => setFormData({ ...formData, nameKana: e.target.value })}
+                  required
+                  placeholder="ひらがなで入力してください"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="email">メールアドレス</Label>
+                <Input
+                  disabled={submitting}
+                  id="email"
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  required
+                />
+              </div>
+
+              {/* 備考欄を追加 */}
+              <div>
+                <Label htmlFor="notes">備考</Label>
+                <Textarea
+                  disabled={submitting}
+                  id="notes"
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                  placeholder="食事の制限やその他の要望があればご記入ください"
+                  className="min-h-[100px]"
+                />
+              </div>
+
+              <Button type="submit" disabled={submitting} className="w-full">
+                {submitting ? '送信中...' : 'チケットを申し込む'}
+              </Button>
             </div>
-          </div>
-
-          <div>
-            <Label htmlFor="name">お名前</Label>
-            <Input
-              disabled={submitting || !selectedSession}
-              id="name"
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              required
-            />
-          </div>
-
-          <div>
-            <Label htmlFor="email">メールアドレス</Label>
-            <Input
-              disabled={submitting || !selectedSession}
-              id="email"
-              type="email"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              required
-            />
-          </div>
-
-          <Button type="submit" disabled={submitting || !selectedSession}>
-            {submitting ? '送信中...' : 'チケットを申し込む'}
-          </Button>
+          )}
         </form>
       </Card>
     </div>
