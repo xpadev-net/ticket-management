@@ -119,11 +119,21 @@ export const sendInvitationEmail = async ({
   console.log(`既存ユーザー: ${isExistingUser}`);
 };
 
+const shouldSendEmail = process.env.SEND_EMAIL === 'true';
 const resend = new Resend(process.env.RESEND_API_KEY);
 const from = process.env.EMAIL_FROM as string;
 
 export async function sendTicketEmail(to: string, html: string, text: string) {
   try {
+    if (!shouldSendEmail) {
+      console.log('メール送信をスキップしました');
+      console.log('--- HTML ---');
+      console.log(html);
+      console.log('--- TEXT ---');
+      console.log(text);
+      return;
+    }
+
     await resend.emails.send({
       from: from,
       to,
@@ -131,6 +141,8 @@ export async function sendTicketEmail(to: string, html: string, text: string) {
       html,
       text,
     });
+
+    console.log('メールを送信しました');
   } catch (error) {
     console.error('Failed to send email:', error);
     throw new Error('メールの送信に失敗しました');
