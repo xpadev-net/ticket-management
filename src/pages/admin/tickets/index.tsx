@@ -1,4 +1,4 @@
-import { useState, useCallback, useId } from 'react';
+import { useState, useCallback, useId, useEffect } from 'react';
 import useSWR, { mutate } from 'swr';
 import AdminLayout from '@/components/admin/layout';
 import QrScanner from '@/components/admin/QrScanner';
@@ -92,9 +92,10 @@ export default function TicketVerification() {
 
     try {
       setProcessingTicket(true);
+      const json = JSON.parse(qrCode);
 
       // 認証付きフェッチャーを使用してチケット情報を取得
-      const data = await fetchWithAuth(`/api/tickets/${encodeURIComponent(qrCode)}`) as TicketStatusUpdateResponse;
+      const data = await fetchWithAuth(`/api/tickets/${encodeURIComponent(json.ticketId)}`) as TicketStatusUpdateResponse;
       setLastVerifiedTicket(data);
 
       // Check if ticket is for the selected session
@@ -133,7 +134,7 @@ export default function TicketVerification() {
         setPartialUseCount(remainingCount);
         
         // 確認ダイアログを表示
-        setCurrentQrCode(qrCode);
+        setCurrentQrCode(json.ticketId);
         setShowConfirmation(true);
         toast.info(`団体チケットの部分受付`, {
           description: `${data.name}さん (既に${data.usedCount}名受付済 / 全${data.groupSize}名)`,
@@ -154,7 +155,7 @@ export default function TicketVerification() {
         }
 
         // 確認ダイアログを表示
-        setCurrentQrCode(qrCode);
+        setCurrentQrCode(json.ticketId);
         setShowConfirmation(true);
         toast.success(`チケット読取成功`, {
           description: `${data.name}さん (${data.session.event.name} ${data.session.name})`,
