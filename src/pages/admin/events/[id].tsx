@@ -31,9 +31,6 @@ export default function EventDetails() {
     description: '',
   });
   const [sessions, setSessions] = useState<EventSessionRequest[]>([]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState('');
-
 
   // 初期データをフォームにセット
   if (event && !editing && formData.name === '') {
@@ -47,7 +44,6 @@ export default function EventDetails() {
       location: session.location,
       capacity: session.capacity
     })));
-    setTags(event.tags.map((tag: { name: string }) => tag.name));
   }
 
 
@@ -71,7 +67,6 @@ export default function EventDetails() {
           ...session,
           capacity: parseInt(session.capacity.toString())
         })),
-        tags
       });
       toast.success('イベント情報を更新しました');
       setEditing(false);
@@ -128,18 +123,6 @@ export default function EventDetails() {
 
   const removeSession = (index: number) => {
     setSessions(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const addTag = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags(prev => [...prev, newTag.trim()]);
-      setNewTag('');
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setTags(prev => prev.filter(tag => tag !== tagToRemove));
   };
 
   if (isLoading) {
@@ -360,45 +343,6 @@ export default function EventDetails() {
                 ))}
               </div>
 
-              <div className="space-y-2">
-                <Label>タグ</Label>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {tags.map(tag => (
-                    <span
-                      key={tag}
-                      className="px-2 py-1 rounded-full text-sm flex items-center gap-1"
-                    >
-                      {tag}
-                      <button
-                        type="button"
-                        onClick={() => removeTag(tag)}
-                        className="text-gray-500 hover:text-gray-700"
-                      >
-                        ×
-                      </button>
-                    </span>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <Input
-                    type="text"
-                    value={newTag}
-                    onChange={(e) => setNewTag(e.target.value)}
-                    placeholder="新しいタグを入力..."
-                    className="flex-1"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        addTag(e as unknown as React.MouseEvent);
-                      }
-                    }}
-                  />
-                  <Button type="button" onClick={addTag} variant="outline">
-                    追加
-                  </Button>
-                </div>
-              </div>
-
               <div className="flex justify-end space-x-4">
                 <Button
                   type="button"
@@ -459,22 +403,6 @@ export default function EventDetails() {
                   ))}
                 </div>
               </div>
-
-              {event.tags.length > 0 && (
-                <div className="space-y-2">
-                  <h3 className="text-lg font-semibold">タグ</h3>
-                  <div className="flex flex-wrap gap-2">
-                    {event.tags.map(tag => (
-                      <span
-                        key={tag.id}
-                        className="px-2 py-1 rounded-full text-sm"
-                      >
-                        {tag.name}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
             </div>
           )}
         </Card>

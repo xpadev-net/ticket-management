@@ -22,10 +22,6 @@ export type PublicEventResponse = {
     name: string;
   }
   sessions: PublicEventSessionResponse[];
-  tags: Array<{
-    id: string;
-    name: string;
-  }>;
 };
 
 export async function GET(
@@ -55,7 +51,6 @@ export async function GET(
             date: 'asc'
           }
         },
-        tags: true
       }
     });
 
@@ -84,7 +79,6 @@ export async function GET(
         sold: session.tickets.length,
         available: Math.max(0, session.capacity - session.tickets.length),
       })),
-      tags: event.tags.map(tag => ({ id: tag.id, name: tag.name}))
     }));
   } catch (error) {
     console.error('Error fetching event:', error);

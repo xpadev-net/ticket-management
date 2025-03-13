@@ -21,10 +21,6 @@ type EventsApiResponse = {
       location: string;
       capacity: number;
     }[];
-    tags: {
-      id: string;
-      name: string;
-    }[];
   }[];
   pagination: {
     page: number;
@@ -43,7 +39,6 @@ export async function GET(
     const limit_str = searchParams.get('limit');
     const queryParams = {
       query: searchParams.get('query') || undefined,
-      tags: searchParams.getAll('tags') || undefined,
       page: page_str ? parseInt(page_str) : undefined,
       limit: limit_str ? parseInt(limit_str) : undefined
     };
@@ -61,7 +56,7 @@ export async function GET(
       );
     }
 
-    const { query, tags, page, limit } = validationResult.data;
+    const { query, page, limit } = validationResult.data;
     const skip = (page - 1) * limit;
 
     // 検索条件の構築
@@ -73,17 +68,6 @@ export async function GET(
             { sessions: { some: { name: { contains: query } } } }
           ]
         : undefined,
-      AND: Array.isArray(tags) && tags.length > 0
-        ? {
-            tags: {
-              some: {
-                name: {
-                  in: tags
-                }
-              }
-            }
-          }
-        : undefined
     };
 
     const [events, total] = await prisma.$transaction([
@@ -101,7 +85,6 @@ export async function GET(
               date: 'asc'
             }
           },
-          tags: true
         },
         orderBy: {
           createdAt: 'desc'
@@ -129,7 +112,6 @@ export async function GET(
             location: session.location,
             capacity: session.capacity
           })),
-          tags: event.tags
         })),
         pagination: {
           page,
@@ -162,10 +144,6 @@ export type EventCreateResponse = {
     date: string;
     location: string;
     capacity: number;
-  }[];
-  tags: {
-    id: string;
-    name: string;
   }[];
 };
 
@@ -205,7 +183,7 @@ export async function POST(
       );
     }
 
-    const { name, description, sessions, tags, organizationId } = validationResult.data;
+    const { name, description, sessions, organizationId } = validationResult.data;
 
     // 組織に対する権限チェック
     const role = await getUserRoleInOrganization(user.id, organizationId);
@@ -232,16 +210,10 @@ export async function POST(
             capacity: session.capacity
           }))
         },
-        tags: tags ? {
-          create: tags.map(tagName => ({
-            name: tagName
-          }))
-        } : undefined
       },
       include: {
         organization: true,
         sessions: true,
-        tags: true
       }
     });
 
@@ -261,7 +233,6 @@ export async function POST(
           location: session.location,
           capacity: session.capacity
         })),
-        tags: event.tags
       })
     );
   } catch (error) {

@@ -31,10 +31,6 @@ export type EventResponse = {
     name: string;
   }
   sessions: EventSessionResponse[];
-  tags: Array<{
-    id: string;
-    name: string;
-  }>;
 };
 
 export async function GET(
@@ -81,8 +77,7 @@ export async function GET(
           orderBy: {
             date: 'asc'
           }
-        },
-        tags: true
+        }
       }
     });
 
@@ -117,8 +112,7 @@ export async function GET(
           usedAt: ticket.usedAt ? ticket.usedAt.toISOString() : null,
           qrCode: ticket.qrCode
         })),
-      })),
-      tags: event.tags.map(tag => ({ id: tag.id, name: tag.name}))
+      }))
     }));
   } catch (error) {
     console.error('Error fetching event:', error);
@@ -171,8 +165,7 @@ export async function PUT(
           orderBy: {
             date: 'asc'
           }
-        },
-        tags: true
+        }
       }
     });
 
@@ -208,7 +201,7 @@ export async function PUT(
       );
     }
 
-    const { name, description, sessions, tags } = validationResult.data;
+    const { name, description, sessions } = validationResult.data;
 
     // イベントの更新
     const updatedEvent = await prisma.event.update({
@@ -225,12 +218,6 @@ export async function PUT(
             capacity: session.capacity
           }))
         },
-        tags: tags ? {
-          deleteMany: {},
-          create: tags.map(tagName => ({
-            name: tagName
-          }))
-        } : undefined
       },
       include: {
         organization: true,
@@ -238,8 +225,7 @@ export async function PUT(
           orderBy: {
             date: 'asc'
           }
-        },
-        tags: true
+        }
       }
     });
 

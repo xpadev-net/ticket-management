@@ -27,8 +27,6 @@ export default function NewEvent() {
     location: '',
     capacity: 0
   }]);
-  const [tags, setTags] = useState<string[]>([]);
-  const [newTag, setNewTag] = useState('');
 
   const { data: organizations, error } = useSWR<OrganizationResponse>('/api/organizations', fetchWithAuth);
 
@@ -52,8 +50,7 @@ export default function NewEvent() {
         sessions: sessions.map(session => ({
           ...session,
           capacity: parseInt(session.capacity.toString())
-        })),
-        tags
+        }))
       });
 
       toast.success('イベントを作成しました');
@@ -92,18 +89,6 @@ export default function NewEvent() {
 
   const removeSession = (index: number) => {
     setSessions(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const addTag = (e: React.MouseEvent) => {
-    e.preventDefault();
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags(prev => [...prev, newTag.trim()]);
-      setNewTag('');
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setTags(prev => prev.filter(tag => tag !== tagToRemove));
   };
 
   return (
@@ -155,45 +140,6 @@ export default function NewEvent() {
             <p className="text-sm text-gray-500 mt-1">
               マークダウン記法が使用できます。見出し(#)、リスト(*)、強調(**太字**)、リンク([リンク](URL))などが使えます。
             </p>
-          </div>
-
-          <div className="space-y-2">
-            <Label>タグ</Label>
-            <div className="flex flex-wrap gap-2 mb-2">
-              {tags.map(tag => (
-                <span
-                  key={tag}
-                  className="text-gray-800 px-2 py-1 rounded-full text-sm flex items-center gap-1"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    className="text-gray-500 hover:text-gray-700"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                placeholder="新しいタグを入力..."
-                className="flex-1"
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
-                    addTag(e as unknown as React.MouseEvent);
-                  }
-                }}
-              />
-              <Button type="button" onClick={addTag} variant="outline">
-                追加
-              </Button>
-            </div>
           </div>
 
           <div className="space-y-4">

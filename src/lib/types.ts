@@ -55,12 +55,10 @@ export interface EventRequest {
   organizationId?: string;
   capacity?: number;
   sessions: EventSessionRequest[];
-  tags: string[]; // 追加
 }
 
 export interface SearchQuery {
   query?: string;
-  tags?: string[];
   page?: number;
   limit?: number;
 }

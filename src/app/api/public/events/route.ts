@@ -9,10 +9,6 @@ export type PublicEventsResponse = {
     description: string;
     date: string;
     imageUrl: string | null;
-    tags: {
-      id: string;
-      name: string;
-    }[];
     startAt: string;
     endAt: string;
     organization: {
@@ -41,7 +37,6 @@ export async function GET(req: NextRequest): Promise<NextResponse<ApiResponse<Pu
       id: true,
       name: true,
       description: true,
-      tags: true,
       imageUrl: true,
       organization: {
         select: {

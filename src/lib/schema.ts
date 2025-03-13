@@ -78,7 +78,13 @@ export const eventSchema = z.object({
   name: z.string().min(1, { message: "イベント名を入力してください" }),
   description: z.string().min(1, { message: "説明を入力してください" }),
   sessions: z.array(eventSessionSchema).min(1, { message: "セッションを少なくとも1つ追加してください" }),
-  tags: z.array(z.string()).optional()
+  organizationId: z.string().uuid()
+});
+
+export const eventUpdateSchema = z.object({
+  name: z.string().min(1, { message: "イベント名を入力してください" }),
+  description: z.string().min(1, { message: "説明を入力してください" }),
+  sessions: z.array(eventSessionSchema).min(1, { message: "セッションを少なくとも1つ追加してください" }),
 });
 
 // チケットリクエスト関連
@@ -109,7 +115,6 @@ export type TicketGenerationRequest = z.infer<typeof ticketGenerationSchema>;
 // 検索クエリ関連
 export const searchQuerySchema = z.object({
   query: z.string().optional(),
-  tags: z.union([z.string(), z.array(z.string())]).optional(),
   page: z.number().int().positive().optional().default(1),
   limit: z.number().int().positive().optional().default(10)
 });

@@ -61,7 +61,6 @@ model Event {
   organizationId String
   organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   sessions       EventSession[]
-  tags           EventTag[]    
   imageUrl       String?       
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
@@ -104,16 +103,4 @@ model Ticket {
   lastUsedAt     DateTime?    // 最後に使用された時間
   
   @@map("tickets")
-}
-
-model EventTag {
-  id        String   @id @default(uuid())
-  name      String
-  eventId   String
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([name, eventId])
-  @@index([eventId])
 }
