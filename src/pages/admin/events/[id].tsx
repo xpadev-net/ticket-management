@@ -11,8 +11,6 @@ import { generateQRCode } from '@/lib/utils';
 import useSWR, { mutate } from 'swr';
 import { swrFetcher, putWithAuth } from '@/lib/fetcher';
 import { EventResponse, EventSessionResponse } from '@/app/api/events/[id]/route';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { StyledMarkdown } from '@/components/markdown';
 
 const formatDateForInput = (dateString: string | Date) => {

@@ -26,3 +26,14 @@ export function validateTicketQR(qrCode: string): boolean {
   // QRコードの形式を検証（この例では16進数64文字）
   return /^[0-9a-f]{64}$/.test(qrCode);
 }
+
+export const formatDate = (dateString: string|Date) => {
+  return (dateString instanceof Date ? dateString : new Date(dateString)).toLocaleString('ja-JP', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+};
+

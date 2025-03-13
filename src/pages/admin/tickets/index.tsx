@@ -17,6 +17,8 @@ import { Input } from '@/components/ui/input';
 import { SessionTicketsResponse } from '@/app/api/sessions/[id]/tickets/route';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { SessionCard } from '@/components/session-card';
+import { formatDate } from '@/lib/utils';
 
 // チケットタイプの定義
 enum TicketType {
@@ -24,6 +26,9 @@ enum TicketType {
   INDIVIDUAL = 'individual',
   PARTIAL = 'partial' // 部分受付モード
 }
+
+// 自動更新の間隔（ミリ秒）
+const AUTO_REFRESH_INTERVAL = 10000; // 10秒
 
 export default function TicketVerification() {
   const [isScanning, setIsScanning] = useState(false);
@@ -39,15 +44,18 @@ export default function TicketVerification() {
   // 部分受付の人数入力のための状態
   const [partialUseCount, setPartialUseCount] = useState<number>(1);
 
+  // セッション情報を10秒ごとに自動更新するように設定
   const { data: sessionsData, error: sessionsError, isLoading: isLoadingSessions } = useSWR<SessionStatsResponse>(
     '/api/sessions/stats',
-    swrFetcher
+    swrFetcher,
+    { refreshInterval: AUTO_REFRESH_INTERVAL }
   );
 
-  // チケット一覧のデータフェッチを追加
+  // チケット一覧を10秒ごとに自動更新するように設定
   const { data: ticketsData, error: ticketsError, isLoading: isLoadingTickets } = useSWR<SessionTicketsResponse>(
     selectedSessionId ? `/api/sessions/${selectedSessionId}/tickets` : null,
-    swrFetcher
+    swrFetcher,
+    { refreshInterval: AUTO_REFRESH_INTERVAL }
   );
 
   // 使いやすいように型変換
@@ -730,32 +738,17 @@ const SessionSelection = ({ sessions, selectedSessionId, onSelect }: {
         </AccordionTrigger>
         <AccordionContent className='flex flex-col gap-2'>
           {sessions.map((session) => (
-            <Card
+            <SessionCard 
               key={session.id}
               onClick={() => onSelect(session.id)}
-              className={`p-4 rounded-lg border cursor-pointer transition-all ${selectedSessionId === session.id
-                  ? 'border-blue-500'
-                  : 'hover:border-blue-300'
-                }`}
-            >
-              <div className="font-medium">{session.event.name}</div>
-              <div>{session.name}</div>
-              <div className="text-sm text-gray-600">{formatDate(session.date)}</div>
-              <div className="text-sm text-gray-500">{session.location}</div>
-            </Card>
+              className={selectedSessionId === session.id
+                ? 'border-blue-500'
+                : 'hover:border-blue-300'}
+              session={session}
+            />
           ))}
         </AccordionContent>
       </AccordionItem>
     </Accordion>
   );
 }
-
-const formatDate = (dateString: string|Date) => {
-  return (dateString instanceof Date ? dateString : new Date(dateString)).toLocaleString('ja-JP', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-};

@@ -9,13 +9,12 @@ import { toast } from 'sonner';
 import useSWR from 'swr';
 import { postWithAuth, swrFetcher } from '@/lib/fetcher';
 import { PublicEventResponse } from '@/app/api/public/events/[id]/route';
-import { Textarea } from '@/components/ui/textarea'; // テキストエリアコンポーネントをインポート
+import { Textarea } from '@/components/ui/textarea';
 import { TicketGenerationResponse } from '@/app/api/public/tickets/route';
 import { TicketGenerationRequest } from '@/lib/schema';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { StyledMarkdown } from '@/components/markdown';
+import { SessionCard } from '@/components/session-card';
 
 interface TicketFormData {
   name: string;
@@ -23,7 +22,7 @@ interface TicketFormData {
   email: string;
   quantity: number;
   isGroupTicket: boolean;
-  notes: string; // 備考欄フィールドを追加
+  notes: string;
 }
 
 export default function EventPage() {
@@ -141,26 +140,17 @@ export default function EventPage() {
                 </AccordionTrigger>
                 <AccordionContent className='flex flex-col gap-2 py-2'>
                   {event.sessions.map((session) => (
-                    <Card
-                      key={session.id}
+                    <SessionCard 
+                      key={session.id} 
+                      session={{
+                        ...session,
+                        event: { name: event.name }
+                      }} 
                       onClick={() => handleSessionSelect(session.id)}
-                      className={`p-4 rounded-lg border cursor-pointer transition-all ${
-                        session.available <= 0 ? 'opacity-50 cursor-not-allowed' : 
-                        selectedSession === session.id
-                          ? 'border-blue-500 bg-blue-50'
-                          : 'hover:border-blue-300'
-                      }`}
-                      style={{ pointerEvents: session.available <= 0 ? 'none' : 'auto' }}
-                    >
-                      <div className="font-medium">{session.name}</div>
-                      <div className="text-sm text-gray-600">{formatDate(session.date)}</div>
-                      <div className="text-sm text-gray-500">{session.location}</div>
-                      <div className={`text-sm mt-1 ${
-                        session.available <= 0 ? 'text-red-600' : 'text-green-600'
-                      }`}>
-                        残り{session.available}席
-                      </div>
-                    </Card>
+                      className={selectedSession === session.id
+                        ? 'border-blue-500'
+                        : 'hover:border-blue-300'}
+                    />
                   ))}
                 </AccordionContent>
               </AccordionItem>
@@ -212,12 +202,9 @@ export default function EventPage() {
                       </Label>
                     </div>
                   </RadioGroup>
-                  <div className="mt-2 text-sm text-gray-600">
-                    {formData.isGroupTicket ? (
-                      <p>※団体チケットは、家族やグループで一緒に入場する場合に適しています。1枚のQRコードで全員が一緒に入場できます。</p>
-                    ) : (
-                      <p>※個人チケットは、同行者が別々のタイミングで入場する可能性がある場合に適しています。代表者に全員分のQRコードが送付されます。</p>
-                    )}
+                  <div className="mt-2 text-sm text-foreground/60">
+                    <p>※団体チケットは、家族やグループで一緒に入場する場合に適しています。1枚のQRコードで全員が一緒に入場できます。</p>
+                    <p>※個人チケットは、同行者が別々のタイミングで入場する可能性がある場合に適しています。代表者に全員分のQRコードが送付されます。</p>
                   </div>
                 </div>
               )}
