@@ -39,7 +39,9 @@
     "react-email": "^3.0.7",
     "react-hook-form": "^7.54.2",
     "react-hooks": "^1.0.1",
+    "react-markdown": "^10.1.0",
     "react-zxing": "^2.1.0",
+    "remark-gfm": "^4.0.1",
     "resend": "^4.1.2",
     "sonner": "^2.0.1",
     "swr": "^2.3.3",
@@ -51,6 +53,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@tailwindcss/typography": "^0.5.16",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^20",

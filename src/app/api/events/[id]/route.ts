@@ -208,7 +208,7 @@ export async function PUT(
       );
     }
 
-    const { name, description, sessions, tags, organizationId } = validationResult.data;
+    const { name, description, sessions, tags } = validationResult.data;
 
     // イベントの更新
     const updatedEvent = await prisma.event.update({
@@ -216,12 +216,11 @@ export async function PUT(
       data: {
         name,
         description,
-        organizationId,
         sessions: {
           deleteMany: {},
           create: sessions.map(session => ({
             name: session.name,
-            date: session.date,
+            date: new Date(session.date),
             location: session.location,
             capacity: session.capacity
           }))

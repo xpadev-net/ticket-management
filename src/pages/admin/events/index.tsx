@@ -5,7 +5,9 @@ import Link from 'next/link';
 import useSWR from 'swr';
 import { swrFetcher } from '@/lib/fetcher';
 import { OrganizationResponse, OrganizationResponseItem } from '@/app/api/organizations/route';
-
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Markdown } from '@/components/markdown';
 
 export default function EventList() {
   const { data: organizationsData, error, isLoading } = useSWR<OrganizationResponse>(
@@ -32,9 +34,9 @@ export default function EventList() {
                     {new Date(event.sessions[0].date).toLocaleDateString()} @ {event.sessions[0].location}
                   </p>
                 )}
-                <p className="text-sm mb-4 line-clamp-2">
-                  {event.description}
-                </p>
+                <div className="text-sm mb-4 line-clamp-2 max-w-none">
+                  <Markdown>{event.description}</Markdown>
+                </div>
               </div>
               <div className="flex items-center justify-between mt-auto pt-4 border-t">
                 <span className="text-sm">

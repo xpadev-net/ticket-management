@@ -152,6 +152,9 @@ export default function NewEvent() {
               placeholder="イベントの説明を入力"
               className="w-full p-2 border rounded min-h-[100px]"
             />
+            <p className="text-sm text-gray-500 mt-1">
+              マークダウン記法が使用できます。見出し(#)、リスト(*)、強調(**太字**)、リンク([リンク](URL))などが使えます。
+            </p>
           </div>
 
           <div className="space-y-2">

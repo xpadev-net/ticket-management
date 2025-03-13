@@ -13,6 +13,9 @@ import { Textarea } from '@/components/ui/textarea'; // テキストエリアコ
 import { TicketGenerationResponse } from '@/app/api/public/tickets/route';
 import { TicketGenerationRequest } from '@/lib/schema';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { StyledMarkdown } from '@/components/markdown';
 
 interface TicketFormData {
   name: string;
@@ -115,7 +118,7 @@ export default function EventPage() {
     <div className="container mx-auto p-4">
       <Card className="p-6">
         <h1 className="text-2xl font-bold mb-4">{event.name}</h1>
-        <p className="mb-6">{event.description}</p>
+        <StyledMarkdown>{event.description}</StyledMarkdown>
         <h2 className="text-xl font-bold mb-4">チケット申し込み</h2>
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* セッション選択のアコーディオン */}

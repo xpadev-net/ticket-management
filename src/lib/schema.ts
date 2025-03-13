@@ -77,7 +77,6 @@ export const eventSessionSchema = z.object({
 export const eventSchema = z.object({
   name: z.string().min(1, { message: "イベント名を入力してください" }),
   description: z.string().min(1, { message: "説明を入力してください" }),
-  organizationId: z.string().uuid({ message: "有効な組織IDを指定してください" }),
   sessions: z.array(eventSessionSchema).min(1, { message: "セッションを少なくとも1つ追加してください" }),
   tags: z.array(z.string()).optional()
 });

@@ -5,6 +5,9 @@ import { PublicEventsResponse } from "@/app/api/public/events/route";
 import useSWR from "swr";
 import { swrFetcher } from "@/lib/fetcher";
 import Link from "next/link";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Markdown } from "@/components/markdown";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -67,7 +70,9 @@ export default function Home() {
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <p className="mb-4">{event.description}</p>
+                    <div className="mb-4">
+                      <Markdown>{event.description}</Markdown>
+                    </div>
                     <div className="flex flex-wrap gap-2 mb-4">
                       {event.tags.map(({id, name}) => (
                         <span key={id} className="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm">

@@ -1,16 +1,19 @@
 import { useState } from 'react';
 import { useRouter } from 'next/router';
 import AdminLayout from '@/components/admin/layout';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import {  EventSessionRequest } from '@/lib/types';
+import { EventSessionRequest } from '@/lib/types';
 import { generateQRCode } from '@/lib/utils';
 import useSWR, { mutate } from 'swr';
 import { swrFetcher, putWithAuth } from '@/lib/fetcher';
 import { EventResponse, EventSessionResponse } from '@/app/api/events/[id]/route';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { StyledMarkdown } from '@/components/markdown';
 
 const formatDateForInput = (dateString: string | Date) => {
   const date = new Date(dateString);
@@ -250,11 +253,11 @@ export default function EventDetails() {
   };
 
   return (
-    <AdminLayout title={event.name}>
+    <AdminLayout title={"イベント詳細"}>
       <div className="space-y-6">
         <Card className="p-6">
           <div className="mb-4">
-            <p className="text-sm text-gray-500">主催: {event.organization.name}</p>
+            <p className="text-sm">主催: {event.organization.name}</p>
           </div>
 
           {editing ? (
@@ -280,6 +283,9 @@ export default function EventDetails() {
                   required
                   className="w-full p-2 border rounded min-h-[100px]"
                 />
+                <p className="text-sm text-gray-500 mt-1">
+                  マークダウン記法が使用できます。見出し(#)、リスト(*)、強調(**太字**)、リンク([リンク](URL))などが使えます。
+                </p>
               </div>
 
               <div className="space-y-4">
@@ -425,9 +431,13 @@ export default function EventDetails() {
                 </div>
               </div>
 
-              <div className="prose max-w-none">
+              <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">イベント説明</h3>
-                <p className="whitespace-pre-wrap">{event.description}</p>
+                <Card>
+                  <CardContent>
+                    <StyledMarkdown>{event.description}</StyledMarkdown>
+                  </CardContent>
+                </Card>
               </div>
 
               <div className="mt-6 pt-6 border-t space-y-4">
