@@ -1,4 +1,5 @@
 import { Ticket } from '@prisma/client';
+import { Resend } from 'resend';
 
 interface TicketWithDetails extends Ticket {
   session: {
@@ -117,3 +118,21 @@ export const sendInvitationEmail = async ({
   console.log(`組織名: ${organizationName}`);
   console.log(`既存ユーザー: ${isExistingUser}`);
 };
+
+const resend = new Resend(process.env.RESEND_API_KEY);
+const from = process.env.EMAIL_FROM as string;
+
+export async function sendTicketEmail(to: string, html: string, text: string) {
+  try {
+    await resend.emails.send({
+      from: from,
+      to,
+      subject: 'チケット発行のお知らせ',
+      html,
+      text,
+    });
+  } catch (error) {
+    console.error('Failed to send email:', error);
+    throw new Error('メールの送信に失敗しました');
+  }
+}

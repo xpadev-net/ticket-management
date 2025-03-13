@@ -1,4 +1,4 @@
-import { generateTicketEmailHtml, generateTicketEmailText } from "@/lib/email";
+import { generateTicketEmailHtml, generateTicketEmailText, sendTicketEmail } from "@/lib/email";
 import prisma from "@/lib/prisma";
 import { ApiResponse, createApiError, createApiResponse, ticketGenerationSchema } from "@/lib/schema";
 import { NextRequest, NextResponse } from "next/server";
@@ -145,11 +145,8 @@ export async function POST(
     const emailHtml = generateTicketEmailHtml(tickets);
     const emailText = generateTicketEmailText(tickets);
 
-    // TODO: 実際のメール送信処理
-    console.log(`To: ${email}`);
-    console.log('Subject: チケット発行のお知らせ');
-    console.log('Text:', emailText);
-    console.log('HTML:', emailHtml);
+    // Resendを使用してメール送信
+    await sendTicketEmail(email, emailHtml, emailText);
 
     return NextResponse.json(createApiResponse({
       tickets: tickets.map(ticket => ({
