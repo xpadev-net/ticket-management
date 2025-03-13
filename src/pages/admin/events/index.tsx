@@ -1,13 +1,9 @@
 import AdminLayout from '@/components/admin/layout';
-import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { swrFetcher } from '@/lib/fetcher';
 import { OrganizationResponse, OrganizationResponseItem } from '@/app/api/organizations/route';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Markdown } from '@/components/markdown';
 import { EventCard } from '@/components/event-card';
 
 export default function EventList() {
