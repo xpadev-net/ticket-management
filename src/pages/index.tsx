@@ -10,6 +10,7 @@ import { swrFetcher } from '@/lib/fetcher';
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from '@/components/ui/pagination';
 import { Layout } from '@/components/layout/Layout';
 import Markdown from 'react-markdown';
+import { EventCard } from '@/components/event-card';
 
 interface EventWithDetails extends Event {
   sessions: EventSession[];
@@ -39,8 +40,8 @@ export default function EventList() {
 
   // SWRを使用してイベント情報を取得
   const queryParams = new URLSearchParams();
-  if (router.query.query) queryParams.append('query', router.query.query as string);
-  queryParams.append('page', (router.query.page || '1').toString());
+  if (router.query.query) queryParams.append('query', searchQuery);
+  queryParams.append('page', currentPage.toString());
 
   const { data, error, isLoading } = useSWR<SearchResponse>(
     `/api/events?${queryParams.toString()}`,
@@ -97,20 +98,7 @@ export default function EventList() {
         
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {data.events.map((event) => (
-            <Card key={event.id} className="p-6">
-              <h2 className="text-xl font-semibold mb-2">{event.name}</h2>
-              <div className="text-sm mb-4 line-clamp-4 max-w-none">
-                <Markdown>{event.description}</Markdown>
-              </div>
-              <div className="mt-4">
-                <Link 
-                  href={`/events/${event.id}`}
-                  className="inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors"
-                >
-                  詳細・申し込み
-                </Link>
-              </div>
-            </Card>
+            <EventCard key={event.id} event={event} link={`/events/${event.id}`} />
           ))}
         </div>
         

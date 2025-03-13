@@ -8,6 +8,7 @@ import { OrganizationResponse, OrganizationResponseItem } from '@/app/api/organi
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Markdown } from '@/components/markdown';
+import { EventCard } from '@/components/event-card';
 
 export default function EventList() {
   const { data: organizationsData, error, isLoading } = useSWR<OrganizationResponse>(
@@ -25,32 +26,7 @@ export default function EventList() {
       </div>
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {org.events.map((event) => (
-          <Card key={event.id} className="p-6">
-            <div className="flex flex-col h-full">
-              <div>
-                <h3 className="text-lg font-semibold mb-2">{event.name}</h3>
-                {event.sessions.length > 0 && (
-                  <p className="text-sm mb-2">
-                    {new Date(event.sessions[0].date).toLocaleDateString()} @ {event.sessions[0].location}
-                  </p>
-                )}
-                <div className="text-sm mb-4 line-clamp-2 max-w-none">
-                  <Markdown>{event.description}</Markdown>
-                </div>
-              </div>
-              <div className="flex items-center justify-between mt-auto pt-4 border-t">
-                <span className="text-sm">
-                  セッション数: {event.sessions.length}
-                </span>
-                <Link
-                  href={`/admin/events/${event.id}`}
-                  className="text-blue-600 hover:text-blue-800"
-                >
-                  詳細を見る
-                </Link>
-              </div>
-            </div>
-          </Card>
+          <EventCard key={event.id} event={event} link={`/admin/events/${event.id}`} />
         ))}
         {org.events.length === 0 && (
           <div className="col-span-full text-center py-8 rounded-lg">
