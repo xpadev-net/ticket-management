@@ -1,30 +1,29 @@
-import { useState, useCallback, useId, useEffect } from 'react';
+import { useState, useCallback } from 'react';
 import useSWR, { mutate } from 'swr';
 import AdminLayout from '@/components/admin/layout';
-import QrScanner from '@/components/admin/QrScanner';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { swrFetcher, fetchWithAuth, putWithAuth } from '@/lib/fetcher';
 import { SessionStatsResponse, SessionStatsResponseItem } from '@/app/api/sessions/stats/route';
 import { TicketStatusUpdateResponse } from '@/app/api/tickets/[qrCode]/route';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Progress } from '@/components/ui/progress';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { SessionTicketsResponse } from '@/app/api/sessions/[id]/tickets/route';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { SessionCard } from '@/components/session-card';
-import { formatDate } from '@/lib/utils';
+import { TicketType } from '@/lib/types';
 
-// チケットタイプの定義
-enum TicketType {
-  GROUP = 'group',
-  INDIVIDUAL = 'individual',
-  PARTIAL = 'partial' // 部分受付モード
+// コンポーネントのインポート
+import { SessionSelection } from '@/components/admin/SessionSelection';
+import { SessionStatistics } from '@/components/admin/SessionStatistics';
+import { QrScannerSection } from '@/components/admin/QrScannerSection';
+import { TicketConfirmationDialog } from '@/components/admin/TicketConfirmationDialog';
+import { LastVerifiedTicket } from '@/components/admin/LastVerifiedTicket';
+import { TicketTable } from '@/components/admin/TicketTable';
+
+// チケットリクエストデータの型
+interface TicketUseRequest {
+  used: boolean;
+  isGroupTicket?: boolean;
+  groupSize?: number;
+  partialUse?: boolean;
+  useCount?: number;
 }
 
 // 自動更新の間隔（ミリ秒）
@@ -67,7 +66,7 @@ export default function TicketVerification() {
   // セッション選択処理
   const handleSessionSelect = (sessionId: string) => {
     setSelectedSessionId(sessionId);
-    setIsScanning(false); // Close the selection menu
+    setIsScanning(false);
   };
 
   // セッション統計データを更新
@@ -185,7 +184,7 @@ export default function TicketVerification() {
     if (!currentQrCode) return;
 
     try {
-      let requestData: any = { 
+      const requestData: TicketUseRequest = { 
         used: true
       };
       
@@ -250,11 +249,6 @@ export default function TicketVerification() {
     toast.info('チケットの使用をキャンセルしました', { duration: 3000 });
   }, []);
 
-  const calculateProgress = (checkedIn: number, total: number) => {
-    if (total === 0) return 0;
-    return (checkedIn / total) * 100;
-  };
-
   // チケットタイプを切り替える関数
   const handleTicketTypeChange = (type: TicketType) => {
     setTicketType(type);
@@ -285,6 +279,16 @@ export default function TicketVerification() {
       const remainingCount = lastVerifiedTicket.groupSize - lastVerifiedTicket.usedCount;
       setPartialUseCount(Math.min(count, remainingCount));
     }
+  };
+
+  // 部分受付継続処理
+  const handleContinuePartialUse = () => {
+    if (!lastVerifiedTicket) return;
+    
+    setTicketType(TicketType.PARTIAL);
+    setPartialUseCount(lastVerifiedTicket.groupSize - lastVerifiedTicket.usedCount);
+    setCurrentQrCode(lastVerifiedTicket.qrCode);
+    setShowConfirmation(true);
   };
 
   // セッション読み込み中にエラーが発生した場合
@@ -337,419 +341,66 @@ export default function TicketVerification() {
   return (
     <AdminLayout title="チケット受付">
       <div className="space-y-6">
-        {/* Session selection */}
+        {/* セッション選択 */}
         <SessionSelection
           sessions={availableSessions}
           selectedSessionId={selectedSessionId}
           onSelect={handleSessionSelect}
         />
-        {/* Session statistics */}
+
+        {/* セッション統計 */}
         {selectedSession && (
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">受付状況</h2>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span>参加予定者数:</span>
-                <span className="font-medium">{selectedSession.stats.total}人</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span>受付済み:</span>
-                <span className="font-medium text-green-600">{selectedSession.stats.checkedIn}人</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span>未受付:</span>
-                <span className="font-medium text-amber-600">{selectedSession.stats.remaining}人</span>
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span>残席数:</span>
-                <span className="font-medium">{selectedSession.stats.capacityRemaining}席</span>
-              </div>
-
-              {/* Progress bar */}
-              <Progress value={calculateProgress(selectedSession.stats.checkedIn, selectedSession.stats.total)} />
-              
-              <div className="text-xs text-center">
-                {selectedSession.stats.checkedIn} / {selectedSession.stats.total}
-                ({Math.round(calculateProgress(selectedSession.stats.checkedIn, selectedSession.stats.total))}%)
-              </div>
-            </div>
-          </Card>
+          <SessionStatistics session={selectedSession} />
         )}
 
-        {/* QR Scanner */}
-        <Card className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold">QRコードスキャン</h2>
-            <Button
-              onClick={() => setIsScanning(!isScanning)}
-              variant={isScanning ? "outline" : "default"}
-              disabled={!selectedSession || showConfirmation}
-            >
-              {isScanning ? 'スキャンを停止' : 'スキャンを開始'}
-            </Button>
-          </div>
-
-          {!selectedSession ? (
-            <div className="text-center py-12 text-amber-600">
-              先にセッションを選択してください
-            </div>
-          ) : isScanning ? (
-            <QrScanner onScan={handleScan} paused={showConfirmation} />
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              スキャンを開始するにはボタンをクリックしてください
-            </div>
-          )}
-        </Card>
+        {/* QRスキャナー */}
+        <QrScannerSection 
+          isScanning={isScanning}
+          setIsScanning={setIsScanning}
+          selectedSession={selectedSession}
+          showConfirmation={showConfirmation}
+          onScan={handleScan}
+        />
 
         {/* チケット確認・処理ダイアログ */}
-        <Dialog open={!!(showConfirmation && lastVerifiedTicket)}>
-          <DialogContent className="max-w-lg">
-            <DialogHeader>
-              <DialogTitle>チケット使用確認</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4 mb-4">
-              {/* チケット基本情報 */}
-              <div className="space-y-2">
-                <div>
-                  <span className="font-medium">参加者名: </span>
-                  {lastVerifiedTicket?.name}
-                </div>
-                <div>
-                  <span className="font-medium">イベント: </span>
-                  {lastVerifiedTicket?.session.event.name}
-                </div>
-                <div>
-                  <span className="font-medium">回: </span>
-                  {lastVerifiedTicket?.session.name}
-                </div>
-                
-                {/* 団体チケットの場合は人数情報を表示 */}
-                {lastVerifiedTicket?.isGroup && (
-                  <div className="mt-2 p-2 bg-blue-50 rounded">
-                    <p className="font-medium text-blue-700">
-                      発券済団体チケット: {lastVerifiedTicket.groupSize}名
-                      {lastVerifiedTicket.usedCount > 0 && ` (${lastVerifiedTicket.usedCount}名使用済)`}
-                    </p>
-                  </div>
-                )}
-              </div>
+        <TicketConfirmationDialog 
+          showConfirmation={showConfirmation}
+          lastVerifiedTicket={lastVerifiedTicket}
+          ticketType={ticketType}
+          groupSize={groupSize}
+          partialUseCount={partialUseCount}
+          remainingCount={remainingCount}
+          isPartialModeAvailable={isPartialModeAvailable}
+          ticketTypeOptions={getTicketTypeOptions()}
+          onTicketTypeChange={handleTicketTypeChange}
+          onGroupSizeChange={handleGroupSizeChange}
+          onPartialUseCountChange={handlePartialUseCountChange}
+          onUseTicket={handleUseTicket}
+          onCancelUse={handleCancelUse}
+        />
 
-              {/* チケット受付方法の選択 */}
-              <div className="border-t pt-4">
-                <h3 className="font-medium mb-3">受付方法を選択してください</h3>
-                
-                <RadioGroup 
-                  value={ticketType}
-                  onValueChange={(value) => handleTicketTypeChange(value as TicketType)}
-                  className="space-y-3"
-                >
-                  {getTicketTypeOptions().map(option => (
-                    <div 
-                      key={option.id} 
-                      className={`flex items-start space-x-2 ${option.disabled ? 'opacity-50' : ''}`}
-                    >
-                      <RadioGroupItem 
-                        value={option.value} 
-                        id={option.id} 
-                        disabled={option.disabled}
-                      />
-                      <div className="grid gap-1">
-                        <Label htmlFor={option.id} className="font-medium">
-                          {option.label}
-                        </Label>
-                        <p className="text-sm text-muted-foreground">
-                          {option.description}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </RadioGroup>
-                
-                {/* 団体チケットの場合の人数入力 */}
-                {ticketType === TicketType.GROUP && (
-                  <div className="mt-4 flex items-center gap-2">
-                    <Label htmlFor="groupSize">人数:</Label>
-                    <Input
-                      type="number"
-                      id="groupSize"
-                      value={groupSize}
-                      onChange={handleGroupSizeChange}
-                      min="2"
-                      max={lastVerifiedTicket?.groupSize || 10}
-                      className="w-20 border border-gray-300 rounded p-1"
-                    />
-                    <span>名</span>
-                  </div>
-                )}
-                
-                {/* 部分受付の場合の人数入力 */}
-                {ticketType === TicketType.PARTIAL && isPartialModeAvailable && (
-                  <div className="mt-4 flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <Label htmlFor="partialUseCount">今回の受付人数:</Label>
-                      <Input
-                        type="number"
-                        id="partialUseCount"
-                        value={partialUseCount}
-                        onChange={handlePartialUseCountChange}
-                        min="1"
-                        max={remainingCount}
-                        className="w-20 border border-gray-300 rounded p-1"
-                      />
-                      <span>名</span>
-                    </div>
-                    <div className="text-sm text-blue-600">
-                      残り {remainingCount} 名まで受付可能
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              {/* 受付処理概要 */}
-              <div className="mt-4 p-2 bg-green-50 rounded">
-                {ticketType === TicketType.GROUP ? (
-                  <p className="font-medium text-green-700">
-                    団体チケット: {groupSize}名として受付します
-                  </p>
-                ) : ticketType === TicketType.PARTIAL ? (
-                  <>
-                    <p className="font-medium text-green-700">
-                      部分受付: {partialUseCount}名として受付します
-                    </p>
-                    <p className="text-sm text-green-600">
-                      (全{lastVerifiedTicket?.groupSize}名中、すでに{lastVerifiedTicket?.usedCount}名受付済、
-                      残り{(lastVerifiedTicket?.groupSize || 0) - (lastVerifiedTicket?.usedCount || 0) - partialUseCount}名)
-                    </p>
-                  </>
-                ) : (
-                  <p className="font-medium text-green-700">
-                    個人チケット: 1名として受付します
-                  </p>
-                )}
-              </div>
-            </div>
-
-            <div className="flex justify-end space-x-4 pt-2">
-              <Button onClick={handleCancelUse} variant="outline">
-                キャンセル
-              </Button>
-              <Button onClick={handleUseTicket} className="bg-green-600 hover:bg-green-700">
-                受付する
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
-
-        {/* Last verified ticket information */}
+        {/* 最後に確認したチケット情報 */}
         {lastVerifiedTicket && !showConfirmation && (
-          <Card className="p-6">
-            <h2 className="text-xl font-semibold mb-4">最後に確認したチケット</h2>
-            <div className="space-y-2">
-              <div>
-                <span className="font-medium">イベント: </span>
-                {lastVerifiedTicket.session.event.name}
-              </div>
-              <div>
-                <span className="font-medium">回: </span>
-                {lastVerifiedTicket.session.name}
-              </div>
-              <div>
-                <span className="font-medium">日時: </span>
-                {formatDate(lastVerifiedTicket.session.date)}
-              </div>
-              <div>
-                <span className="font-medium">場所: </span>
-                {lastVerifiedTicket.session.location}
-              </div>
-              <div>
-                <span className="font-medium">参加者名: </span>
-                {lastVerifiedTicket.name}
-              </div>
-              <div>
-                <span className="font-medium">メールアドレス: </span>
-                {lastVerifiedTicket.email}
-              </div>
-              <div>
-                <span className="font-medium">ステータス: </span>
-                <span className={lastVerifiedTicket.used ? "text-red-600" : "text-green-600"}>
-                  {lastVerifiedTicket.fullyUsed 
-                    ? '完全に使用済み' 
-                    : lastVerifiedTicket.used 
-                      ? '部分的に使用済み' 
-                      : '未使用'}
-                </span>
-              </div>
-              {lastVerifiedTicket.usedAt && (
-                <div>
-                  <span className="font-medium">最初の使用日時: </span>
-                  {formatDate(lastVerifiedTicket.usedAt)}
-                </div>
-              )}
-              {lastVerifiedTicket.lastUsedAt && lastVerifiedTicket.lastUsedAt !== lastVerifiedTicket.usedAt && (
-                <div>
-                  <span className="font-medium">最後の使用日時: </span>
-                  {formatDate(lastVerifiedTicket.lastUsedAt)}
-                </div>
-              )}
-              
-              {/* 団体チケットの情報を表示 */}
-              {lastVerifiedTicket.isGroup && (
-                <div className="mt-2 p-2 bg-blue-50 rounded">
-                  <p className="font-medium text-blue-700">団体チケット: 合計{lastVerifiedTicket.groupSize}名</p>
-                  {lastVerifiedTicket.usedCount > 0 && (
-                    <p className="mt-1 text-blue-600">
-                      受付済: {lastVerifiedTicket.usedCount}名
-                      {!lastVerifiedTicket.fullyUsed && ` (残り${lastVerifiedTicket.groupSize - lastVerifiedTicket.usedCount}名未受付)`}
-                    </p>
-                  )}
-                </div>
-              )}
-              
-              {/* 部分受付の可能性がある場合に表示 */}
-              {lastVerifiedTicket.isGroup && lastVerifiedTicket.used && !lastVerifiedTicket.fullyUsed && (
-                <div className="mt-4">
-                  <Button 
-                    onClick={() => {
-                      setTicketType(TicketType.PARTIAL);
-                      setPartialUseCount(lastVerifiedTicket.groupSize - lastVerifiedTicket.usedCount);
-                      setCurrentQrCode(lastVerifiedTicket.qrCode);
-                      setShowConfirmation(true);
-                    }}
-                    size="sm"
-                  >
-                    残り{lastVerifiedTicket.groupSize - lastVerifiedTicket.usedCount}名を受付
-                  </Button>
-                </div>
-              )}
-            </div>
-          </Card>
+          <LastVerifiedTicket 
+            lastVerifiedTicket={lastVerifiedTicket} 
+            onContinuePartialUse={handleContinuePartialUse} 
+          />
         )}
 
         {/* チケット一覧 */}
         {selectedSession && (
           <Card className="p-6">
             <h2 className="text-xl font-semibold mb-4">チケット一覧</h2>
-            {isLoadingTickets ? (
-              <div className="text-center py-4">読み込み中...</div>
-            ) : ticketsError ? (
-              <div className="text-center py-4 text-red-600">
-                チケット情報の取得に失敗しました
-              </div>
-            ) : !ticketsData?.tickets.length ? (
-              <div className="text-center py-4 text-gray-500">
-                チケットがありません
-              </div>
-            ) : (
-              <div className="space-y-4">
-                <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className='w-[200px]'>
-                          氏名
-                        </TableHead>
-                        <TableHead className='w-[200px]'>
-                          メールアドレス
-                        </TableHead>
-                        <TableHead className='w-[50px]'>
-                          種別
-                        </TableHead>
-                        <TableHead className='w-[100px]'>
-                          状態
-                        </TableHead>
-                        <TableHead className='w-[100px]'>
-                          最終使用日時
-                        </TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {ticketsData.tickets.map((ticket) => (
-                        <TableRow 
-                          key={ticket.id}
-                        >
-                          <TableCell>
-                            {ticket.name}
-                          </TableCell>
-                          <TableCell>
-                            {ticket.email}
-                          </TableCell>
-                          <TableCell>
-                            {ticket.isGroup ? (
-                              `団体 (${ticket.groupSize}名)`
-                            ) : '個人'}
-                          </TableCell>
-                          <TableCell className="px-6 py-4 whitespace-nowrap">
-                            <Badge className={`${
-                              ticket.fullyUsed
-                                ? 'bg-gray-100 text-gray-800'
-                                : ticket.used
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-green-100 text-green-800'
-                            }`}>
-                              {ticket.fullyUsed 
-                                ? '完全使用済' 
-                                : ticket.used 
-                                  ? `部分使用済 (${ticket.usedCount}/${ticket.groupSize}名)` 
-                                  : '未使用'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {ticket.lastUsedAt 
-                              ? formatDate(ticket.lastUsedAt)
-                              : '-'}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-            )}
+            <TicketTable
+              tickets={ticketsData?.tickets || []}
+              isLoading={isLoadingTickets}
+              error={ticketsError}
+              selectedSession={selectedSession}
+              refreshTickets={refreshTickets}
+            />
           </Card>
         )}
       </div>
     </AdminLayout>
-  );
-}
-
-const SessionSelection = ({ sessions, selectedSessionId, onSelect }: {
-  sessions: SessionStatsResponseItem[],
-  selectedSessionId: string | null,
-  onSelect: (sessionId: string) => void,
-}) => {
-  const id = useId();
-  const selectedSession = selectedSessionId ? sessions.find(s => s.id === selectedSessionId) : null;
-  return (
-    <Accordion type="single" collapsible className="w-full" value={selectedSessionId ? undefined : id}>
-      <AccordionItem value={id}>
-        <AccordionTrigger>
-          {selectedSession ? (
-            <div>
-              {selectedSession.event.name} {selectedSession.name}
-            </div>
-          ) : (
-            <div>
-              セッションを選択してください
-            </div>
-          )}
-        </AccordionTrigger>
-        <AccordionContent className='flex flex-col gap-2'>
-          {sessions.map((session) => (
-            <SessionCard 
-              key={session.id}
-              onClick={() => onSelect(session.id)}
-              className={selectedSessionId === session.id
-                ? 'border-blue-500'
-                : 'hover:border-blue-300'}
-              session={session}
-            />
-          ))}
-        </AccordionContent>
-      </AccordionItem>
-    </Accordion>
   );
 }

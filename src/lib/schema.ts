@@ -17,7 +17,10 @@ export const ticketStatusUpdateSchema = z.object({
   groupSize: z.number().int().positive().optional(), // 団体チケットの人数
   isGroupTicket: z.boolean().optional(), // 団体チケットフラグ
   partialUse: z.boolean().optional(), // 部分受付フラグ
-  useCount: z.number().int().positive().optional() // 部分受付時の受付人数
+  useCount: z.number().int().positive().optional(), // 部分受付時の受付人数
+  manualUpdate: z.boolean().optional(), // 手動更新フラグ
+  usedCount: z.number().int().min(0).optional(), // 使用済み人数（手動更新用）
+  fullyUsed: z.boolean().optional() // 完全に使用済みフラグ（手動更新用）
 });
 
 // ログイン関連

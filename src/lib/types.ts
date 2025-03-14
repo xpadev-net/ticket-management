@@ -49,16 +49,25 @@ export interface EventSessionRequest {
   capacity: number;
 }
 
+// チケットタイプの定義
+export enum TicketType {
+  GROUP = 'group',
+  INDIVIDUAL = 'individual',
+  PARTIAL = 'partial' // 部分受付モード
+}
+
 export interface EventRequest {
   name: string;
   description: string;
   organizationId?: string;
   capacity?: number;
   sessions: EventSessionRequest[];
+  tags: string[]; // 追加
 }
 
 export interface SearchQuery {
   query?: string;
+  tags?: string[];
   page?: number;
   limit?: number;
 }

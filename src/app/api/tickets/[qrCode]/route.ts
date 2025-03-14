@@ -131,10 +131,6 @@ export type TicketStatusUpdateResponse = {
     event: {
       id: string;
       name: string;
-      organization: {
-        id: string;
-        name: string;
-      }
     }
   }
 }
@@ -187,7 +183,7 @@ export async function PUT(
       );
     }
 
-    const { used, isGroupTicket, groupSize, partialUse, useCount } = validationResult.data;
+    const { used, isGroupTicket, groupSize, partialUse, useCount, manualUpdate, usedCount, fullyUsed } = validationResult.data;
 
     // チケットの検索と関連データの取得
     const ticket = await prisma.ticket.findUnique({
@@ -221,6 +217,82 @@ export async function PUT(
       );
     }
 
+    // 手動更新の場合は特別な処理を行う
+    if (manualUpdate) {
+      // 更新データの準備
+      const updateData: any = {
+        used
+      };
+
+      // 団体チケットの場合は追加データを設定
+      if (ticket.isGroup) {
+        // 受付人数を直接設定
+        updateData.usedCount = usedCount;
+        updateData.fullyUsed = fullyUsed;
+      } else {
+        // 個人チケットの場合
+        updateData.usedCount = used ? 1 : 0;
+        updateData.fullyUsed = used;
+      }
+
+      // 使用状態が変わる場合、日時を更新
+      if (!ticket.used && used) {
+        updateData.usedAt = new Date(); // 初回使用日時を設定
+      }
+
+      // 最終使用日時を更新（状態が変わった場合のみ）
+      if (ticket.used !== used || 
+          (ticket.isGroup && ticket.usedCount !== usedCount)) {
+        updateData.lastUsedAt = new Date();
+      }
+
+      // チケットの更新
+      const updatedTicket = await prisma.ticket.update({
+        where: { qrCode },
+        data: updateData,
+        include: {
+          session: {
+            include: {
+              event: {
+                include: {
+                  organization: true
+                }
+              }
+            }
+          }
+        }
+      });
+
+      return NextResponse.json(createApiResponse({
+        id: updatedTicket.id,
+        qrCode: updatedTicket.qrCode,
+        used: updatedTicket.used,
+        usedAt: updatedTicket.usedAt?.toISOString() || null,
+        name: updatedTicket.name,
+        email: updatedTicket.email,
+        isGroup: updatedTicket.isGroup,
+        groupSize: updatedTicket.groupSize,
+        usedCount: updatedTicket.usedCount,
+        fullyUsed: updatedTicket.fullyUsed,
+        lastUsedAt: updatedTicket.lastUsedAt?.toISOString() || null,
+        session: {
+          id: updatedTicket.session.id,
+          name: updatedTicket.session.name,
+          date: updatedTicket.session.date.toISOString(),
+          location: updatedTicket.session.location,
+          event: {
+            id: updatedTicket.session.event.id,
+            name: updatedTicket.session.event.name,
+            organization: {
+              id: updatedTicket.session.event.organization.id,
+              name: updatedTicket.session.event.organization.name
+            }
+          }
+        }
+      }));
+    }
+
+    // 通常のQRスキャン処理（既存のロジック）
     // 個人チケットを団体として受付しようとした場合はエラー
     if (!ticket.isGroup && isGroupTicket) {
       return NextResponse.json(
