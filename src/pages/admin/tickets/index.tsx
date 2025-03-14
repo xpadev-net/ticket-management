@@ -397,7 +397,7 @@ export default function TicketVerification() {
               先にセッションを選択してください
             </div>
           ) : isScanning ? (
-            <QrScanner onScan={handleScan} />
+            <QrScanner onScan={handleScan} paused={showConfirmation} />
           ) : (
             <div className="text-center py-12 text-gray-500">
               スキャンを開始するにはボタンをクリックしてください

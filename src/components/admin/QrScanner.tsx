@@ -1,25 +1,23 @@
-import { useZxing } from 'react-zxing'
+import { Scanner } from '@yudiel/react-qr-scanner';
 
 interface QrScannerProps {
   onScan: (qrCode: string) => void;
+  paused: boolean;
 }
 
-export default function QrScanner({ onScan }: QrScannerProps) {
-  const { ref } = useZxing({
-    onDecodeResult(result) {
-      onScan(result.getText())
-    },
-    constraints: {
-      video: {
-        facingMode: 'environment'
-      },
-      audio: false
-    }
-  })
-
+export default function QrScanner({ onScan, paused }: QrScannerProps) {
   return (
-    <div>
-      <video ref={ref} />
+    <div className={`max-w-2xl mx-auto ${paused ? 'opacity-50' : ''}`}>
+      <Scanner 
+        onScan={(result) => onScan(result[0].rawValue)}
+        formats={[
+          'qr_code', // QR コード
+          'micro_qr_code', // マイクロ QR
+        ]}
+        sound={false}
+        allowMultiple
+        paused={paused}
+      />
     </div>
   )
 }
